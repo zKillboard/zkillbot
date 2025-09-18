@@ -8,7 +8,7 @@ if (!DISCORD_WEBHOOK_URL || !ENTITY_IDS) {
 	console.error("Missing DISCORD_WEBHOOK_URL or ENTITY_IDS in .env");
 	process.exit(1);
 }
-const entityIds = ENTITY_IDS.split(",").map(id => id.trim());
+const entityIds = ENTITY_IDS.split(",").map(id => id.trim()).map(Number).filter(Boolean);
 
 async function pollRedisQ() {
 	let text;
@@ -23,13 +23,15 @@ async function pollRedisQ() {
 
 			// Check attackers and victim
 			const allEntities = [
-				killmail.victim?.alliance_id,
-				killmail.victim?.corporation_id,
-				killmail.victim?.character_id,
+				killmail.victim.faction_id,
+				killmail.victim.alliance_id,
+				killmail.victim.corporation_id,
+				killmail.victim.character_id,
+				...killmail.attackers.map(a => a.faction_id),
 				...killmail.attackers.map(a => a.alliance_id),
 				...killmail.attackers.map(a => a.corporation_id),
 				...killmail.attackers.map(a => a.character_id)
-			].filter(Boolean).map(String);
+			].map(Number).filter(Boolean);
 
 			const match = allEntities.find(id => entityIds.includes(id));
 
