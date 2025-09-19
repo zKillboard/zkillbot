@@ -31,21 +31,30 @@ async function pollRedisQ() {
 			const zkb = data.package.zkb;
 
 			// Check attackers and victim
-			const allEntities = [
+			const victimEntities = [
 				killmail.victim.faction_id,
 				killmail.victim.alliance_id,
 				killmail.victim.corporation_id,
-				killmail.victim.character_id,
-				...killmail.attackers.map(a => a.faction_id),
-				...killmail.attackers.map(a => a.alliance_id),
-				...killmail.attackers.map(a => a.corporation_id),
-				...killmail.attackers.map(a => a.character_id)
+				killmail.victim.character_id
 			].map(Number).filter(Boolean);
 
-			const match = allEntities.find(id => entityIds.includes(id));
+			let match = victimEntities.find(id => entityIds.includes(id));
+			let colorCode;
+			if (match) {
+				colorCode = 15548997; // red
+			} else {
+				colorCode = 5763719; // green
+				const attackerEntities = [
+					...killmail.attackers.map(a => a.faction_id),
+					...killmail.attackers.map(a => a.alliance_id),
+					...killmail.attackers.map(a => a.corporation_id),
+					...killmail.attackers.map(a => a.character_id)
+				].map(Number).filter(Boolean);
+				match = attackerEntities.find(id => entityIds.includes(id));
+			}
 
 			if (match) {
-				await postToDiscord(killmail, zkb);
+				await postToDiscord(killmail, zkb, colorCode);
 			}
 		}
 	} catch (err) {
@@ -56,7 +65,7 @@ async function pollRedisQ() {
 	}
 }
 
-async function postToDiscord(killmail, zkb) {
+async function postToDiscord(killmail, zkb, colorCode) {
 	try {
 		let res;
 
@@ -76,22 +85,25 @@ async function postToDiscord(killmail, zkb) {
 		} while (success == false);
 
 		const $ = cheerio.load(html);
+		const title = $('title').text().trim();
+		let split = title.split(' | ');
+		let hookTitle = split[1] + ' lost a ' + split[0];
 		const description = $('meta[name="og:description"]').attr("content");
 		const image = $('meta[name="og:image"]').attr("content");
 
 		const embed = {
-			title: url,
+			title: hookTitle,
 			description: description,
-			color: 16711680, // red
+			color: colorCode,
 			thumbnail: { url: image, height: 64, width: 64 },
 			fields: [
 				//{ name: "System", value: `${killmail.solar_system_id}`, inline: true },
 				{ name: "Destroyed", value: `${zkb.destroyedValue.toLocaleString()} ISK`, inline: true },
 				{ name: "Dropped", value: `${zkb.droppedValue.toLocaleString()} ISK`, inline: true },
 				{ name: "Fitted", value: `${zkb.fittedValue.toLocaleString()} ISK`, inline: true },
-				{ name: "Total", value: `${zkb.totalValue.toLocaleString()} ISK`, inline: true },
 				{ name: "Involved", value: `${killmail.attackers.length.toLocaleString()}`, inline: true },
-				{ name: "Points", value: `${zkb.points.toLocaleString()}`, inline: true }
+				{ name: "Points", value: `${zkb.points.toLocaleString()}`, inline: true },
+				{ name: "Killmail Value", value: `${zkb.totalValue.toLocaleString()} ISK`, inline: true },
 			],
 			timestamp: new Date(killmail.killmail_time),
 			url: url
