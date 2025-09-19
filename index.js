@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import fetch from "node-fetch";
 import dotenv from "dotenv";
+import * as cheerio from "cheerio";
+
 dotenv.config();
 
 const { DISCORD_WEBHOOK_URL, ENTITY_IDS, REDISQ_URL } = process.env;
@@ -9,6 +11,13 @@ if (!DISCORD_WEBHOOK_URL || !ENTITY_IDS) {
 	process.exit(1);
 }
 const entityIds = ENTITY_IDS.split(",").map(id => id.trim()).map(Number).filter(Boolean);
+
+const HEADERS = {
+	headers: {
+		"User-Agent": "simplediscordbot",
+		"Accept": "application/json"
+	}
+}
 
 async function pollRedisQ() {
 	let text;
@@ -48,27 +57,61 @@ async function pollRedisQ() {
 }
 
 async function postToDiscord(killmail, zkb) {
-	const url = `https://zkillboard.com/kill/${killmail.killmail_id}/`;
+	try {
+		let res;
 
-	const embed = {
-		title: `Killmail #${killmail.killmail_id}`,
-		description: `[View on zKillboard](${url})`,
-		color: 16711680, // red
-		fields: [
-			{ name: "System", value: `${killmail.solar_system_id}`, inline: true },
-			{ name: "ISK Value", value: `${zkb.totalValue.toLocaleString()} ISK`, inline: true }
-		],
-		timestamp: new Date(killmail.killmail_time).toISOString()
-	};
+		const url = `https://zkillboard.com/kill/${killmail.killmail_id}/`;
 
-	await fetch(DISCORD_WEBHOOK_URL, {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		//body: JSON.stringify({ embeds: [embed] })
-		body: JSON.stringify({ content: url })
-	});
+		let success = false, html;
+		do {
+			try {
+				res = await fetch(url, HEADERS);
+				html = await res.text();
+				success = res.status == 200;
+			} catch (e) {
+				success = false;
+				console.error(e);
+			}
+			if (success == false) await sleep(1000);
+		} while (success == false);
 
-	console.log(`Posted killmail ${killmail.killmail_id} to Discord`);
+		const $ = cheerio.load(html);
+		const description = $('meta[name="og:description"]').attr("content");
+		const image = $('meta[name="og:image"]').attr("content");
+
+		const embed = {
+			title: url,
+			description: description,
+			color: 16711680, // red
+			thumbnail: { url: image, height: 64, width: 64 },
+			fields: [
+				//{ name: "System", value: `${killmail.solar_system_id}`, inline: true },
+				{ name: "Destroyed", value: `${zkb.destroyedValue.toLocaleString()} ISK`, inline: true },
+				{ name: "Dropped", value: `${zkb.droppedValue.toLocaleString()} ISK`, inline: true },
+				{ name: "Fitted", value: `${zkb.fittedValue.toLocaleString()} ISK`, inline: true },
+				{ name: "Total", value: `${zkb.totalValue.toLocaleString()} ISK`, inline: true },
+				{ name: "Involved", value: `${killmail.attackers.length.toLocaleString()}`, inline: true },
+				{ name: "Points", value: `${zkb.points.toLocaleString()}`, inline: true }
+			],
+			timestamp: new Date(killmail.killmail_time),
+			url: url
+		};
+
+		res = await fetch(DISCORD_WEBHOOK_URL, {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ embeds: [embed], username: 'zKillBot' })
+			//body: JSON.stringify({ content: url })
+		});
+
+		console.log(`Posted killmail ${killmail.killmail_id} to Discord`);
+	} catch (e) {
+		console.log(e);
+	}
+}
+
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 pollRedisQ();

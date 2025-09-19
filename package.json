@@ -1,18 +1,22 @@
 {
-  "name": "simplediscordbot",
-  "version": "0.0.1",
-  "type": "module",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
-  "dependencies": {
-    "dotenv": "^17.2.2",
-    "node-fetch": "^3.3.2"
-  }
+	"name": "simplediscordbot",
+	"version": "0.0.1",
+	"type": "module",
+	"main": "index.js",
+	"scripts": {
+		"start": "node index.js",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"description": "A simple discord bot that listens to zKillboard's RedisQ for killmails.",
+	"engines": {
+		"node": ">=22"
+	},
+	"dependencies": {
+		"cheerio": "^1.1.2",
+		"dotenv": "^17.2.2",
+		"node-fetch": "^3.3.2"
+	}
 }
-
