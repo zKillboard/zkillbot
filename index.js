@@ -20,11 +20,10 @@ const HEADERS = {
 }
 
 async function pollRedisQ() {
-	let text;
+	let wait = 500; // RedisQ allows 20 queries / 10 seconds
 	try {
 		const res = await fetch(REDISQ_URL);
-		text = await res.text();
-		const data = JSON.parse(text);
+		const data = await res.json();
 
 		if (data && data.package && data.package.killmail) {
 			const killmail = data.package.killmail;
@@ -53,15 +52,15 @@ async function pollRedisQ() {
 				match = attackerEntities.find(id => entityIds.includes(id));
 			}
 
-			if (match) {
+			if (match || process.env.TESTING == 'true') {
 				await postToDiscord(killmail, zkb, colorCode);
 			}
 		}
 	} catch (err) {
 		console.error("Error polling RedisQ:", err);
-		console.error(text);
+		wait = 5000;
 	} finally {
-		setTimeout(pollRedisQ, 500);
+		setTimeout(pollRedisQ, wait);
 	}
 }
 
@@ -97,7 +96,6 @@ async function postToDiscord(killmail, zkb, colorCode) {
 			color: colorCode,
 			thumbnail: { url: image, height: 64, width: 64 },
 			fields: [
-				//{ name: "System", value: `${killmail.solar_system_id}`, inline: true },
 				{ name: "Destroyed", value: `${zkb.destroyedValue.toLocaleString()} ISK`, inline: true },
 				{ name: "Dropped", value: `${zkb.droppedValue.toLocaleString()} ISK`, inline: true },
 				{ name: "Fitted", value: `${zkb.fittedValue.toLocaleString()} ISK`, inline: true },
@@ -106,7 +104,8 @@ async function postToDiscord(killmail, zkb, colorCode) {
 				{ name: "Killmail Value", value: `${zkb.totalValue.toLocaleString()} ISK`, inline: true },
 			],
 			timestamp: new Date(killmail.killmail_time),
-			url: url
+			url: url,
+			author: { name: 'zKillBot', icon_url: 'https://zkillboard.com/img/logo.png', url: url },
 		};
 
 		res = await fetch(DISCORD_WEBHOOK_URL, {
