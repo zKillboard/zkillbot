@@ -9,8 +9,8 @@
 	},
 	"keywords": [],
 	"author": "",
-	"license": "ISC",
-	"description": "A simple discord bot that listens to zKillboard's RedisQ for killmails.",
+	"license": "Unlicense",
+	"description": "A simple bot that listens to zKillboard's RedisQ for killmails and posts to Discord via webhook.",
 	"engines": {
 		"node": ">=22"
 	},
