@@ -55,6 +55,16 @@ This is the URL for RedisQ that the bot will poll to get the killmails.  At the 
 REDISQ_URL=https://zkillredisq.stream/listen.php?queueID=TotallyUniqueID9876554321
 ```
 
+### LOCALE
+
+The locale can be modified to update the numbers to your preferred formatting, for example:
+
+```
+LOCALE=fr
+```
+
+The line is optional and the default is ```en```
+
 ### TESTING
 
 This is available to ensure that the bot is both receiving killmails and able to post via webhook to your Discord.  It will listen for and then post any killmails that comes from RedisQ.  I do not recommend leaving this setting active.  To enable TESTING change ```false``` to ```true```.
