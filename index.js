@@ -86,7 +86,7 @@ async function postToDiscord(killmail, zkb, colorCode) {
 		const $ = cheerio.load(html);
 		const title = $('title').text().trim();
 		let split = title.split(' | ');
-		let hookTitle = split[1] + ' lost a ' + split[0];
+		let hookTitle = split[1] + ' lost their ' + split[0];
 		const description = $('meta[name="og:description"]').attr("content");
 		const image = $('meta[name="og:image"]').attr("content");
 
