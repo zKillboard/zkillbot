@@ -2,6 +2,11 @@
 
 zKillBot is a Discord bot that listens to zKill's RedisQ and will post killmails via webhook to your channel.
 
+<img width="401" height="224" alt="Example Killmail posted by zKillBot on Discord" src="https://github.com/user-attachments/assets/2ea2c0e3-566c-4c9a-a142-4e6e9ca26fa3" />
+
+
+## Configuration
+
 The configuration is quite simple, here is the env.example file:
 
 ```
