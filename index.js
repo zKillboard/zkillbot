@@ -144,7 +144,7 @@ async function postToDiscord(killmail, zkb, colorCode) {
 	}
 }
 
-const names_cache = {};
+let names_cache = {};
 let names_cache_clear = Date.now();
 async function getNames(entities) {
 	// Keep the cache from getting too large
