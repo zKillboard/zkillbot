@@ -1,13 +1,14 @@
 #!/usr/bin/env node
+
+import { readFileSync } from "fs";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
-import * as cheerio from "cheerio";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const { DISCORD_WEBHOOK_URL, ENTITY_IDS, REDISQ_URL } = process.env;
-if (!DISCORD_WEBHOOK_URL || !ENTITY_IDS) {
-	console.error("Missing DISCORD_WEBHOOK_URL or ENTITY_IDS in .env");
+if (!DISCORD_WEBHOOK_URL || !ENTITY_IDS || !REDISQ_URL) {
+	console.error("Missing DISCORD_WEBHOOK_URL or ENTITY_IDS or REDISQ_URL in .env");
 	process.exit(1);
 }
 const entityIds = ENTITY_IDS.split(",").map(id => id.trim()).map(Number).filter(Boolean);
@@ -137,17 +138,44 @@ async function postToDiscord(killmail, zkb, colorCode) {
 	} catch (e) {
 		console.log(e);
 	}
-	if (process.env.TESTING === 'true') process.exit();
+	if (process.env.TESTING === 'true') {
+		console.log('TESTING mode detected! Exiting after sending Discord webhook...');
+		process.exit();
+	}
 }
 
+const names_cache = {};
+let names_cache_clear = Date.now();
 async function getNames(entities) {
-	let headers = { method: 'post', body: JSON.stringify([...new Set(entities)]), ...HEADERS };
-	let res = await fetch('https://esi.evetech.net/universe/names', headers);
-	let json = await res.json();
-	const names = Object.fromEntries(json.map(e => [e.id, e.name]));
-	return names;
-}
+	// Keep the cache from getting too large
+	if (Date.now() - names_cache_clear > 3600_000) {
+		names_cache = {};
+		names_cache_clear = Date.now();
+	}
 
+	// unique IDs
+	const ids = [...new Set(entities)];
+
+	// separate cached vs missing
+	const missing = ids.filter(id => !(id in names_cache));
+
+	if (missing.length > 0) {
+		const res = await fetch("https://esi.evetech.net/universe/names", {
+			method: "POST",
+			body: JSON.stringify(missing),
+			...HEADERS
+		});
+		const json = await res.json();
+
+		// add fetched names into cache
+		for (const e of json) {
+			names_cache[e.id] = e.name;
+		}
+	}
+
+	// return an object with all the requested IDs → names
+	return Object.fromEntries(ids.map(id => [id, names_cache[id]]));
+}
 function fillNames(names, entity) {
 	let ret = {};
 	for (let [key, value] of Object.entries(entity)) {
@@ -188,6 +216,19 @@ function getIDs(obj) {
 		.filter(([key]) => key.endsWith('_id'))
 		.map(([, value]) => value);
 }
+
+const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
+const { name, version } = pkg;
+
+console.log(`${name} v${version}`);
+console.log(`  Locale set to: ${LOCALE}`);
+
+if (process.env.TESTING == 'true') {
+	console.log('TESTING mode detected! Listening for any killmail...');
+} else {
+	console.log('  Listening for:', Object.values(await getNames(entityIds)).sort().join(', '), '\n');
+}
+console.log(); // empty line on purpose
 
 pollRedisQ();
 

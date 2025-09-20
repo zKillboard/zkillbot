@@ -1,5 +1,5 @@
 {
-	"name": "simplediscordbot",
+	"name": "zKillBot",
 	"version": "0.0.1",
 	"type": "module",
 	"main": "index.js",
@@ -15,7 +15,6 @@
 		"node": ">=22"
 	},
 	"dependencies": {
-		"cheerio": "^1.1.2",
 		"dotenv": "^17.2.2",
 		"node-fetch": "^3.3.2"
 	}
