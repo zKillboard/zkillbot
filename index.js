@@ -94,11 +94,12 @@ async function postToDiscord(killmail, zkb, colorCode, names) {
 		const solo = zkb.labels.indexOf('solo') > -1 ? ', solo, ' : '';
 		const attacker_count = killmail.attackers.length - 1;
 		const others = attacker_count > 0 ? ' along with ' + attacker_count + ' other pilot' + (attacker_count > 1 ? 's' : '') : '';
+		const system = await getSystenNameAndRegion(killmail.solar_system_id);
 
 		const title = victim.ship_type_name;
 		const image = `https://images.evetech.net/types/${killmail.victim.ship_type_id}/icon`;
 
-		const description = `${victim.character_name} (${victim_employer}) lost their ${victim.ship_type_name} in [system]. Final Blow by ${fb.character_name} (${fb_employer})${solo} in their ${fb.ship_type_name}${others}. Total Value: ${zkb.totalValue.toLocaleString(LOCALE)} ISK`;
+		const description = `${victim.character_name} (${victim_employer}) lost their ${victim.ship_type_name} in ${system}. Final Blow by ${fb.character_name} (${fb_employer})${solo} in their ${fb.ship_type_name}${others}. Total Value: ${zkb.totalValue.toLocaleString(LOCALE)} ISK`;
 
 		const embed = {
 			title: title,
@@ -151,6 +152,28 @@ function fillNames(names, entity) {
 		ret[key.replace('_id', '_name')] = (names[value] || '???');
 	}
 	return ret;
+}
+
+const systems = {};
+const constellations = {};
+const regions = {};
+async function getSystenNameAndRegion(solar_system_id) {
+	let system = await getJsonCached(`https://esi.evetech.net/universe/systems/${solar_system_id}`);
+	let constellation = await getJsonCached(`https://esi.evetech.net/universe/constellations/${system.constellation_id}`, HEADERS);
+	let region = await getJsonCached(`https://esi.evetech.net/universe/regions/${constellation.region_id}`, HEADERS);
+
+	return `${system.name} (${region.name})`;
+}
+
+const json_cache = {};
+async function getJsonCached(url) {
+	let value = json_cache[url];
+	if (!value) {
+		let res = await fetch(url, HEADERS);
+		value = await res.json();
+		json_cache[url] = value;
+	}
+	return value;
 }
 
 function sleep(ms) {
