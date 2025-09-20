@@ -58,8 +58,7 @@ async function pollRedisQ() {
 			}
 
 			if (match || process.env.TESTING === 'true') {
-				const names = await getNames([...victimEntities, ...attackerEntities]);
-				await postToDiscord(killmail, zkb, colorCode, names);
+				await postToDiscord(killmail, zkb, colorCode);
 			}
 		}
 	} catch (err) {
@@ -70,10 +69,9 @@ async function pollRedisQ() {
 	}
 }
 
-async function postToDiscord(killmail, zkb, colorCode, names) {
+async function postToDiscord(killmail, zkb, colorCode) {
 	try {
 		let res;
-
 		const url = `https://zkillboard.com/kill/${killmail.killmail_id}/`;
 
 		let final_blow = killmail.attackers[0]; // default to first
@@ -83,6 +81,11 @@ async function postToDiscord(killmail, zkb, colorCode, names) {
 				break;
 			}
 		}
+		const [names, system] = await Promise.all([
+			getNames([...getIDs(killmail.victim), ...getIDs(final_blow)]),
+			getSystenNameAndRegion(killmail.solar_system_id)
+		]);
+
 		const victim = fillNames(names, killmail.victim);
 		if (!victim.character_name) victim.character_name = victim.corporation_name;
 		const victim_employer = victim.alliance_name ?? victim.corporation_name;
@@ -94,7 +97,7 @@ async function postToDiscord(killmail, zkb, colorCode, names) {
 		const solo = zkb.labels.indexOf('solo') > -1 ? ', solo, ' : '';
 		const attacker_count = killmail.attackers.length - 1;
 		const others = attacker_count > 0 ? ' along with ' + attacker_count + ' other pilot' + (attacker_count > 1 ? 's' : '') : '';
-		const system = await getSystenNameAndRegion(killmail.solar_system_id);
+
 
 		const title = victim.ship_type_name;
 		const image = `https://images.evetech.net/types/${killmail.victim.ship_type_id}/icon`;
@@ -178,6 +181,12 @@ async function getJsonCached(url) {
 
 function sleep(ms) {
 	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getIDs(obj) {
+	return Object.entries(obj)
+		.filter(([key]) => key.endsWith('_id'))
+		.map(([, value]) => value);
 }
 
 pollRedisQ();
