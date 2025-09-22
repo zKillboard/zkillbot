@@ -257,7 +257,11 @@ async function startUp() {
 	let res = await fetch(`${DISCORD_WEBHOOK_URL}?wait=true`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ content: `${name} v${version} activated... ${locale} ${mode} (this message will delete within 1 minute)` })
+		body: JSON.stringify({
+			avatar_url: 'https://cdn.discordapp.com/icons/849992399639281694/4cf3d7dba477c789883b292f46bfc016.png',
+			username: 'zKillBot',
+			content: `${name} v${version} activated... ${locale} ${mode} (this message will delete within 1 minute)`
+		})
 	});
 	webhoook_announcement = await res.json();
 	selfdestruct.push(webhoook_announcement);
