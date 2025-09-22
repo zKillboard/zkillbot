@@ -25,7 +25,10 @@ const HEADERS = {
 async function pollRedisQ() {
 	let wait = 500; // RedisQ allows 20 queries / 10 seconds
 	try {
-		const res = await fetch(REDISQ_URL);
+		const controller = new AbortController();
+		const timer = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+		const res = await fetch(REDISQ_URL, HEADERS);
 		const data = await res.json();
 
 		if (data && data.package && data.package.killmail) {
@@ -63,7 +66,11 @@ async function pollRedisQ() {
 			}
 		}
 	} catch (err) {
-		console.error("Error polling RedisQ:", err);
+		if (err.name === "AbortError") {
+			console.error("Fetch timed out after 15 seconds");
+		} else {
+			console.error("Error polling RedisQ:", err);
+		}
 		wait = 5000;
 	} finally {
 		setTimeout(pollRedisQ, wait);
@@ -147,8 +154,10 @@ async function postToDiscord(killmail, zkb, colorCode) {
 		console.log(e);
 	}
 	if (process.env.TESTING === 'true') {
-		console.log('TESTING mode detected! Exiting after sending Discord webhook...');
-		//process.exit();
+		if (process.env.TESTING_NONSTOP != 'true') {
+			console.log('TESTING mode detected! Exiting after sending Discord webhook...');
+			process.exit();
+		}
 	}
 }
 
