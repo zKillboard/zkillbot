@@ -21,6 +21,7 @@ const HEADERS = {
 		"Accept": "application/json"
 	}
 }
+let exiting = false;
 
 async function pollRedisQ() {
 	let wait = 500; // RedisQ allows 20 queries / 10 seconds
@@ -139,25 +140,24 @@ async function postToDiscord(killmail, zkb, colorCode) {
 			footer: { text: fb.character_name, icon_url: fb_img }
 		};
 
-		res = await fetch(DISCORD_WEBHOOK_URL, {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({
-				embeds: [embed],
-				avatar_url: 'https://cdn.discordapp.com/icons/849992399639281694/4cf3d7dba477c789883b292f46bfc016.png',
-				username: 'zKillBot'
-			})
-		});
+		if (!exiting) {
+			res = await fetch(`${DISCORD_WEBHOOK_URL}?wait=true`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					embeds: [embed],
+					avatar_url: 'https://cdn.discordapp.com/icons/849992399639281694/4cf3d7dba477c789883b292f46bfc016.png',
+					username: 'zKillBot'
+				})
+			});
 
-		console.log(`Posted killmail ${killmail.killmail_id} to Discord`);
+			console.log(`Posted killmail ${killmail.killmail_id} to Discord`);
+			if (process.env.TESTING) {
+				selfdestruct.push(await res.json());
+			}
+		}
 	} catch (e) {
 		console.log(e);
-	}
-	if (process.env.TESTING === 'true') {
-		if (process.env.TESTING_NONSTOP != 'true') {
-			console.log('TESTING mode detected! Exiting after sending Discord webhook...');
-			process.exit();
-		}
 	}
 }
 
@@ -234,19 +234,66 @@ function getIDs(obj) {
 		.map(([, value]) => value);
 }
 
-const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
-const { name, version } = pkg;
+let webhoook_announcement = null;
+let selfdestruct = [];
+async function startUp() {
+	const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
+	const { name, version } = pkg;
+	let zKillBotVersion = `${name} v${version}`;
+	let locale = `  Locale set to: '${LOCALE}'.`;
 
-console.log(`${name} v${version}`);
-console.log(`  Locale set to: ${LOCALE}`);
+	console.log(zKillBotVersion);
+	console.log(locale);
 
-if (process.env.TESTING == 'true') {
-	console.log('TESTING mode detected! Listening for any killmail...');
-} else {
-	console.log('  Listening for:', Object.values(await getNames(entityIds)).sort().join(', '), '\n');
+	let mode;
+	if (process.env.TESTING == 'true') {
+		mode = 'TESTING mode detected! Listening for any killmail...';
+	} else {
+		mode = '  Watching for killmails from: ' + Object.values(await getNames(entityIds)).sort().join(', ') + '\n';
+	}
+	console.log(mode);
+	console.log(); // empty line on purpose
+
+	let res = await fetch(`${DISCORD_WEBHOOK_URL}?wait=true`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ content: `${name} v${version} activated... ${locale} ${mode} (this message will delete within 1 minute)` })
+	});
+	webhoook_announcement = await res.json();
+	selfdestruct.push(webhoook_announcement);
+
+	await sleep(60000);
+	const deleteUrl = `${DISCORD_WEBHOOK_URL}/messages/${webhoook_announcement.id}`;
+	res = await fetch(deleteUrl, { method: "DELETE" });
+	webhoook_announcement = null;
 }
-console.log(); // empty line on purpose
 
+
+process.on("SIGINT", async () => {
+	exiting = true;
+	if (selfdestruct.length > 0) await executeSelfDestruct();
+
+	console.log();
+	console.log('Shutting down... RedisQ will remember your queueID for up to 3 hours...');
+	process.exit(0);
+});
+
+async function executeSelfDestruct() {
+	console.log('Executing self destruct....');
+
+	while (selfdestruct.length) {
+		const del = selfdestruct.pop();
+		const deleteUrl = `${DISCORD_WEBHOOK_URL}/messages/${del.id}`;
+		try {
+			await fetch(deleteUrl, { method: "DELETE" });
+			await sleep(100);
+		} catch (e) {
+			// ignore self destruct errors
+		}
+	}
+}
+
+startUp();
 pollRedisQ();
 
 
