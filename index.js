@@ -88,25 +88,33 @@ async function postToDiscord(killmail, zkb, colorCode) {
 		]);
 
 		const victim = fillNames(names, killmail.victim);
-		if (!victim.character_name) victim.character_name = victim.corporation_name;
+		let victim_url = `https://zkillboard.com/character/${victim.character_id}/`;
+		let victim_img = `https://images.evetech.net/characters/${victim.character_id}/portrait?size=64`;
+		if (!victim.character_name) {
+			victim.character_name = victim.corporation_name;
+			victim_url = `https://zkillboard.com/corporation/${victim.corporation_id}/`;
+			victim_img = `https://images.evetech.net/corporations//${victim.corporation_id}/logo?size=64`;
+		}
 		const victim_employer = victim.alliance_name ?? victim.corporation_name;
 
 		const fb = fillNames(names, final_blow);
-		if (!fb.character_name) fb.character_name = fb.corporation_name;
+		let fb_img = `https://images.evetech.net/characters/${fb.character_id}/portrait?size=64`;
+		if (!fb.character_name) {
+			fb.character_name = fb.corporation_name;
+			fb_img = `https://images.evetech.net/corporations//${fb.corporation_id}/logo?size=64`;
+		}
 		if (!fb.character_name) fb.character_name = 'an NPC';
 		const fb_employer = fb.alliance_name ?? (fb.corporation_name ?? (fb.faction_name ?? '???'));
 		const solo = zkb.labels.indexOf('solo') > -1 ? ', solo, ' : '';
 		const attacker_count = killmail.attackers.length - 1;
 		const others = attacker_count > 0 ? ' along with ' + attacker_count + ' other pilot' + (attacker_count > 1 ? 's' : '') : '';
 
-
-		const title = victim.ship_type_name;
 		const image = `https://images.evetech.net/types/${killmail.victim.ship_type_id}/icon`;
 
 		const description = `${victim.character_name} (${victim_employer}) lost their ${victim.ship_type_name} in ${system}. Final Blow by ${fb.character_name} (${fb_employer})${solo} in their ${fb.ship_type_name}${others}. Total Value: ${zkb.totalValue.toLocaleString(LOCALE)} ISK`;
 
 		const embed = {
-			title: title,
+			title: victim.character_name + (victim.character_name.endsWith('s') ? "' " : "'s ") + victim.ship_type_name,
 			description: description,
 			color: colorCode,
 			thumbnail: { url: image, height: 64, width: 64 },
@@ -120,8 +128,8 @@ async function postToDiscord(killmail, zkb, colorCode) {
 			],
 			timestamp: new Date(killmail.killmail_time),
 			url: url,
-			author: { name: victim.character_name, icon_url: `https://images.evetech.net/characters/${victim.character_id}/portrait?size=64`, url: url },
-			footer: { text: fb.character_name, icon_url: `https://images.evetech.net/characters/${fb.character_id}/portrait?size=64` }
+			author: { name: victim.character_name, icon_url: victim_img, url: victim_url },
+			footer: { text: fb.character_name, icon_url: fb_img }
 		};
 
 		res = await fetch(DISCORD_WEBHOOK_URL, {
@@ -140,7 +148,7 @@ async function postToDiscord(killmail, zkb, colorCode) {
 	}
 	if (process.env.TESTING === 'true') {
 		console.log('TESTING mode detected! Exiting after sending Discord webhook...');
-		process.exit();
+		//process.exit();
 	}
 }
 
