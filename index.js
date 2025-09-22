@@ -28,7 +28,7 @@ async function pollRedisQ() {
 		const controller = new AbortController();
 		const timer = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-		const res = await fetch(REDISQ_URL, HEADERS);
+		const res = await fetch(REDISQ_URL, { ...HEADERS, signal: controller.signal });
 		const data = await res.json();
 
 		if (data && data.package && data.package.killmail) {
