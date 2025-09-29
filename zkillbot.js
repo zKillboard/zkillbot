@@ -540,13 +540,7 @@ async function postToDiscord(channelId, killmail, zkb, colorCode) {
 		try {
 			const channel = await client.channels.fetch(channelId);
 
-			const perms = channel.permissionsFor(interaction.guild.members.me);
-
-			const canView = perms?.has("ViewChannel");
-			const canSend = perms?.has("SendMessages");
-			const canEmbed = perms?.has("EmbedLinks");
-
-			if (channel && channel.isTextBased() && canView && canSend && canEmbed) {
+			if (channel && channel.isTextBased()) {
 				await channel.send({
 					embeds: [embed]
 				});
