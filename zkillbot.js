@@ -236,123 +236,134 @@ client.once("clientReady", async () => {
 
 // --- interaction handling ---
 client.on("interactionCreate", async (interaction) => {
-	if (!interaction.isChatInputCommand()) return;
-	if (interaction.commandName !== "zkillbot") return;
+	try {
+		if (!interaction.isChatInputCommand()) return;
+		if (interaction.commandName !== "zkillbot") return;
 
-	const guildId = interaction.guildId;
-	const channelId = interaction.channelId;
-	const sub = interaction.options.getSubcommand();
+		const guildId = interaction.guildId;
+		const channelId = interaction.channelId;
+		const sub = interaction.options.getSubcommand();
 
-	if (sub === "subscribe") {
-		const entityRaw = interaction.options.getString("entity_id");
-		const entityId = Number(entityRaw);
-		if (Number.isNaN(entityId)) {
+		if (sub === "subscribe") {
+			const entityRaw = interaction.options.getString("entity_id");
+			const entityId = Number(entityRaw);
+			if (Number.isNaN(entityId)) {
+				return interaction.reply({
+					content: ` ❌ Unable to subscribe... **${entityRaw}** is not a number`,
+					flags: 64
+				});
+			}
+
+			let names = await getNames([entityId]);
+			if (names.length == 0) {
+				return interaction.reply({
+					content: ` ❌ Unable to subscribe... **${entityRaw}** is not a valid entity id`,
+					flags: 64
+				});
+			}
+			const name = names[entityId];
+
+			await subsCollection.updateOne(
+				{ guildId, channelId },
+				{ $addToSet: { entityIds: entityId } },
+				{ upsert: true }
+			);
+
+			await entities.updateOne(
+				{ entity_id: entityId, name: name },
+				{ $setOnInsert: { last_updated: unixtime() } },
+				{ upsert: true }
+			);
+
 			return interaction.reply({
-				content: ` ❌ Unable to subscribe... **${entityRaw}** is not a number`,
+				content: `📡 Subscribed this channel to ${name}`,
 				flags: 64
 			});
 		}
 
-		let names = await getNames([entityId]);
-		if (names.length == 0) {
-			return interaction.reply({
-				content: ` ❌ Unable to subscribe... **${entityRaw}** is not a valid entity id`,
-				flags: 64
-			});
-		}
-		const name = names[entityId];
+		if (sub === "unsubscribe") {
+			const entityRaw = interaction.options.getString("entity_id");
+			const entityId = Number(entityRaw);
 
-		await subsCollection.updateOne(
-			{ guildId, channelId },
-			{ $addToSet: { entityIds: entityId } },
-			{ upsert: true }
-		);
+			if (Number.isNaN(entityId)) {
+				return interaction.reply({
+					content: ` ❌ Unable to unsubscribe... **${entityRaw}** is not a number`,
+					flags: 64
+				});
+			}
 
-		await entities.updateOne(
-			{ entity_id: entityId, name: name },
-			{ $setOnInsert: { last_updated: unixtime() } },
-			{ upsert: true }
-		);
+			const res = await subsCollection.updateOne(
+				{ guildId, channelId },
+				{ $pull: { entityIds: entityId } }
+			);
 
-		return interaction.reply({
-			content: `📡 Subscribed this channel to ${name}`,
-			flags: 64
-		});
-	}
-
-	if (sub === "unsubscribe") {
-		const entityRaw = interaction.options.getString("entity_id");
-		const entityId = Number(entityRaw);
-
-		if (Number.isNaN(entityId)) {
-			return interaction.reply({
-				content: ` ❌ Unable to unsubscribe... **${entityRaw}** is not a number`,
-				flags: 64
-			});
+			if (res.modifiedCount > 0) {
+				return interaction.reply({
+					content: `❌ Unsubscribed this channel from **${entityId}**`,
+					flags: 64
+				});
+			} else {
+				return interaction.reply({
+					content: `⚠️ No subscription found for **${entityId}**`,
+					flags: 64
+				});
+			}
 		}
 
-		const res = await subsCollection.updateOne(
-			{ guildId, channelId },
-			{ $pull: { entityIds: entityId } }
-		);
 
-		if (res.modifiedCount > 0) {
-			return interaction.reply({
-				content: `❌ Unsubscribed this channel from **${entityId}**`,
-				flags: 64
-			});
-		} else {
-			return interaction.reply({
-				content: `⚠️ No subscription found for **${entityId}**`,
-				flags: 64
-			});
-		}
-	}
+		if (sub === "check") {
+			const channel = interaction.channel;
 
+			const perms = channel.permissionsFor(interaction.guild.members.me);
 
-	if (sub === "check") {
-		const channel = interaction.channel;
+			const canView = perms?.has("ViewChannel");
+			const canSend = perms?.has("SendMessages");
+			const canEmbed = perms?.has("EmbedLinks");
 
-		const perms = channel.permissionsFor(interaction.guild.members.me);
-
-		const canView = perms?.has("ViewChannel");
-		const canSend = perms?.has("SendMessages");
-		const canEmbed = perms?.has("EmbedLinks");
-
-		await interaction.reply({
-			content: [
-				`🔍 Permission check for <#${channel.id}>`,
-				`• View Channel: ${canView ? "✅" : "❌ (allow zkillbot#0066 to view channel)"}`,
-				`• Send Messages: ${canSend ? "✅" : "❌ (allow zkillbot#0066 to send messages)"}`,
-				`• Embed Links: ${canEmbed ? "✅" : "❌ (allow zkillbot#0066 to embed links)"}`
-			].join("\n"),
-			ephemeral: true // only visible to the user who ran it
-		});
-	}
-
-	if (sub === "invite") {
-		const inviteUrl = process.env.INVITE;
-
-		await interaction.reply({
-			content: `🔗 Invite me to your server:\n${inviteUrl}`,
-			ephemeral: true // only visible to the user
-		});
-	}
-
-
-	if (sub === "list") {
-		const doc = await subsCollection.findOne({ guildId, channelId });
-		if (!doc || !doc.entityIds || doc.entityIds.length === 0) {
-			return interaction.reply({
-				content: "ℹ️ No subscriptions in this channel.",
-				flags: 64
+			await interaction.reply({
+				content: [
+					`🔍 Permission check for <#${channel.id}>`,
+					`• View Channel: ${canView ? "✅" : "❌ (allow zkillbot#0066 to view channel)"}`,
+					`• Send Messages: ${canSend ? "✅" : "❌ (allow zkillbot#0066 to send messages)"}`,
+					`• Embed Links: ${canEmbed ? "✅" : "❌ (allow zkillbot#0066 to embed links)"}`
+				].join("\n"),
+				ephemeral: true // only visible to the user who ran it
 			});
 		}
 
-		return interaction.reply({
-			content: `📋 Subscriptions in this channel:\n${doc.entityIds.map(id => `• ${id}`).join("\n")}`,
-			flags: 64
-		});
+		if (sub === "invite") {
+			const inviteUrl = process.env.INVITE;
+
+			await interaction.reply({
+				content: `🔗 Invite me to your server:\n${inviteUrl}`,
+				ephemeral: true // only visible to the user
+			});
+		}
+
+
+		if (sub === "list") {
+			const doc = await subsCollection.findOne({ guildId, channelId });
+			if (!doc || !doc.entityIds || doc.entityIds.length === 0) {
+				return interaction.reply({
+					content: "ℹ️ No subscriptions in this channel.",
+					flags: 64
+				});
+			}
+
+			// 🔑 resolve IDs to names
+			const names = await getNames(doc.entityIds);
+
+			return interaction.reply({
+				content:
+					"📋 Subscriptions in this channel:\n" +
+					doc.entityIds
+						.map(id => `• ${id} — ${names[id] ?? "Unknown"}`)
+						.join("\n"),
+				flags: 64
+			});
+		}
+	} catch (e) {
+		console.error(e);
 	}
 });
 
