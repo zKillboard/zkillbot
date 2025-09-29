@@ -3,7 +3,7 @@ import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from "di
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const { DISCORD_BOT_TOKEN, CLIENT_ID, MONGO_URI, MONGO_DB, REDISQ_URL, LOCALE } = process.env;
 
@@ -39,6 +39,8 @@ async function gracefulShutdown(signal) {
 			await client.destroy();
 			console.log("✅ Discord client destroyed.");
 		}
+		
+		shareAppStatus();
 	} catch (err) {
 		console.error("⚠️ Error during shutdown cleanup:", err);
 	}
@@ -90,7 +92,7 @@ async function initMongo() {
 
 let app_status = { redisq_count: 0, discord_post_count: 0 };
 function shareAppStatus() {
-	console.log(new Date(),
+	console.log(' 📡',
 		'RedisQ polls:', app_status.redisq_count,
 		'Discord Post Queue:', discord_posts_queue.length,
 		'Discord Posts:', app_status.discord_post_count
@@ -557,8 +559,6 @@ async function postToDiscord(channelId, killmail, zkb, colorCode) {
 				await channel.send({
 					embeds: [embed]
 				});
-				console.log(`Sent ${killmail.killmail_id} to channel ${channelId}`);
-
 				app_status.discord_post_count++;
 			} else {
 				console.warn(`Channel ${channelId} not found or not text-based`);
