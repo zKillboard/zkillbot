@@ -327,7 +327,7 @@ client.on("interactionCreate", async (interaction) => {
 					`• Send Messages: ${canSend ? "✅" : "❌ (allow zkillbot#0066 to send messages)"}`,
 					`• Embed Links: ${canEmbed ? "✅" : "❌ (allow zkillbot#0066 to embed links)"}`
 				].join("\n"),
-				ephemeral: true // only visible to the user who ran it
+				flags: 64
 			});
 		}
 
@@ -336,7 +336,7 @@ client.on("interactionCreate", async (interaction) => {
 
 			await interaction.reply({
 				content: `🔗 Invite me to your server:\n${inviteUrl}`,
-				ephemeral: true // only visible to the user
+				flags: 64
 			});
 		}
 
@@ -546,7 +546,13 @@ async function postToDiscord(channelId, killmail, zkb, colorCode) {
 		try {
 			const channel = await client.channels.fetch(channelId);
 
-			if (channel && channel.isTextBased()) {
+			const perms = channel.permissionsFor(interaction.guild.members.me);
+
+			const canView = perms?.has("ViewChannel");
+			const canSend = perms?.has("SendMessages");
+			const canEmbed = perms?.has("EmbedLinks");
+
+			if (channel && channel.isTextBased() && canView && canSend && canEmbed) {
 				await channel.send({
 					embeds: [embed]
 				});
