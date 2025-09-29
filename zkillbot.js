@@ -18,6 +18,7 @@ let exiting = false;
 let redisq_polling = true;
 
 async function gracefulShutdown(signal) {
+	console.log(`Signal received: ${signal}`);
 	if (exiting) return; // already cleaning up
 	exiting = true;
 
