@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 import { readFileSync } from "fs";
 import fetch from "node-fetch";
 import dotenv from "dotenv";
@@ -17,7 +23,7 @@ const LOCALE = process.env.LOCALE ?? 'en';
 
 const HEADERS = {
 	headers: {
-		"User-Agent": "zKillBot v0.0.1",
+		"User-Agent": "zKillBot",
 		"Accept": "application/json"
 	}
 }
@@ -74,7 +80,7 @@ async function pollRedisQ() {
 		}
 		wait = 5000;
 	} finally {
-		setTimeout(pollRedisQ, wait);
+		if (!exiting) setTimeout(pollRedisQ, wait);
 	}
 }
 
@@ -115,7 +121,7 @@ async function postToDiscord(killmail, zkb, colorCode) {
 		const fb_employer = fb.alliance_name ?? (fb.corporation_name ?? (fb.faction_name ?? '???'));
 		const solo = zkb.labels.indexOf('solo') > -1 ? ', solo, ' : '';
 		const attacker_count = killmail.attackers.length - 1;
-		const others = attacker_count > 0 ? ' along with ' + attacker_count + ' other pilot' + (attacker_count > 1 ? 's' : '') : '';
+		const others = attacker_count > 0 ? ' along with ' + attacker_count + ' other ' + (solo > 0 ? 'npc' : 'pilot') + (attacker_count > 1 ? 's' : '') : '';
 
 		const image = `https://images.evetech.net/types/${killmail.victim.ship_type_id}/icon`;
 
@@ -193,6 +199,7 @@ async function getNames(entities) {
 	// return an object with all the requested IDs → names
 	return Object.fromEntries(ids.map(id => [id, names_cache[id]]));
 }
+
 function fillNames(names, entity) {
 	let ret = {};
 	for (let [key, value] of Object.entries(entity)) {
@@ -237,9 +244,11 @@ function getIDs(obj) {
 let webhoook_announcement = null;
 let selfdestruct = [];
 async function startUp() {
-	const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
+	const pkg = JSON.parse(readFileSync(__dirname + "/package.json", "utf8"));
 	const { name, version } = pkg;
+
 	let zKillBotVersion = `${name} v${version}`;
+	HEADERS.headers['User-Agent'] = zKillBotVersion;
 	let locale = `  Locale set to: '${LOCALE}'.`;
 
 	console.log(zKillBotVersion);
@@ -266,14 +275,16 @@ async function startUp() {
 	webhoook_announcement = await res.json();
 	selfdestruct.push(webhoook_announcement);
 
-	await sleep(60000);
-	const deleteUrl = `${DISCORD_WEBHOOK_URL}/messages/${webhoook_announcement.id}`;
-	res = await fetch(deleteUrl, { method: "DELETE" });
-	webhoook_announcement = null;
+	setTimeout(async () => {
+		const deleteUrl = `${DISCORD_WEBHOOK_URL}/messages/${webhoook_announcement.id}`;
+		res = await fetch(deleteUrl, { method: "DELETE" });
+		webhoook_announcement = null;
+	}, 60000);
 }
 
 
 process.on("SIGINT", async () => {
+	if (exiting) return; // we're already cleaning up
 	exiting = true;
 	if (selfdestruct.length > 0) await executeSelfDestruct();
 
@@ -289,15 +300,17 @@ async function executeSelfDestruct() {
 		const del = selfdestruct.pop();
 		const deleteUrl = `${DISCORD_WEBHOOK_URL}/messages/${del.id}`;
 		try {
-			await fetch(deleteUrl, { method: "DELETE" });
-			await sleep(100);
+			let res = await fetch(deleteUrl, { method: "DELETE" });
+			await res.text();
+			await sleep(250);
 		} catch (e) {
 			// ignore self destruct errors
 		}
 	}
 }
 
-startUp();
-pollRedisQ();
+
+await startUp();
+await pollRedisQ();
 
 

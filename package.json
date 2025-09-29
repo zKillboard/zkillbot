@@ -1,21 +1,24 @@
 {
 	"name": "zKillBot",
-	"version": "0.0.4",
+	"version": "0.0.5",
 	"type": "module",
-	"main": "index.js",
+	"main": "zkillbot.js",
 	"scripts": {
 		"start": "node index.js",
+		"zkillbot": "node zkillbot.js",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "Unlicense",
-	"description": "A simple bot that listens to zKillboard's RedisQ for killmails and posts to Discord via webhook.",
+	"description": "A simple bot that listens to zKillboard's RedisQ for killmails and posts to Discord.",
 	"engines": {
 		"node": ">=22"
 	},
 	"dependencies": {
+		"discord.js": "^14.22.1",
 		"dotenv": "^17.2.2",
+		"mongodb": "^6.20.0",
 		"node-fetch": "^3.3.2"
 	}
 }

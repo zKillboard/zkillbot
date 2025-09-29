@@ -1,0 +1,573 @@
+#!/usr/bin/env node
+import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from "discord.js";
+import { MongoClient } from "mongodb";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+const { DISCORD_BOT_TOKEN, CLIENT_ID, MONGO_URI, MONGO_DB, REDISQ_URL, LOCALE } = process.env;
+
+const HEADERS = {
+	headers: {
+		"User-Agent": "zKillBot",
+		"Accept": "application/json"
+	}
+}
+
+let exiting = false;
+let redisq_polling = true;
+
+async function gracefulShutdown(signal) {
+	if (exiting) return; // already cleaning up
+	exiting = true;
+
+	console.log(`⏹️ Preparing to shut down on ${signal}...`);
+
+	// wait for redisq_polling to finish and queue to drain (with 10s timeout)
+	const shutdownTimeout = Date.now() + 30_000;
+	while ((redisq_polling || discord_posts_queue.length > 0) && Date.now() < shutdownTimeout) {
+		await sleep(100);
+	}
+
+	try {
+		if (mongo) {
+			await mongo.close();
+			console.log("✅ MongoDB connection closed.");
+		}
+		if (client) {
+			await client.destroy();
+			console.log("✅ Discord client destroyed.");
+		}
+	} catch (err) {
+		console.error("⚠️ Error during shutdown cleanup:", err);
+	}
+
+	console.log("✅ Shutdown complete.");
+	process.exit(0);
+}
+
+// listen for both SIGINT and SIGTERM
+["SIGINT", "SIGTERM"].forEach(sig => {
+	process.on(sig, () => gracefulShutdown(sig));
+});
+
+
+if (!DISCORD_BOT_TOKEN || !CLIENT_ID || !MONGO_URI || !MONGO_DB) {
+	console.error("❌ Missing required env vars");
+	process.exit(1);
+}
+
+const client = new Client({
+	intents: [GatewayIntentBits.Guilds],
+});
+
+const SEVEN_DAYS = 604800;
+function unixtime() {
+	return Math.floor(Date.now() / 1000);
+}
+
+// --- Mongo connection ---
+const mongo = new MongoClient(MONGO_URI);
+let subsCollection, sentHistory, entities;
+
+async function initMongo() {
+	await mongo.connect();
+	const db = mongo.db(MONGO_DB);
+
+	entities = db.collection('entities');
+	await entities.createIndex({ entity_id: 1 });
+	await entities.createIndex({ last_updated: 1 });
+
+	sentHistory = db.collection('subshistory');
+	await sentHistory.createIndex({ channelId: 1, killmail_id: 1 }, { unique: true });
+	await sentHistory.createIndex({ createdAt: 1 }, { expireAfterSeconds: SEVEN_DAYS }); // 7 days
+
+	subsCollection = db.collection("subscriptions");
+	await subsCollection.createIndex({ entityIds: 1 });
+	console.log("✅ Connected to MongoDB");
+}
+
+let app_status = { redisq_count: 0, discord_post_count: 0 };
+function shareAppStatus() {
+	console.log(new Date(),
+		'RedisQ polls:', app_status.redisq_count,
+		'Discord Post Queue:', discord_posts_queue.length,
+		'Discord Posts:', app_status.discord_post_count
+	);
+	app_status = { redisq_count: 0, discord_post_count: 0 };
+	setTimeout(shareAppStatus, 33333);
+}
+setTimeout(shareAppStatus, 33333);
+
+async function entityUpdates() {
+	try {
+		const oneWeekAgo = unixtime() - SEVEN_DAYS;
+
+		const staleEntities = await entities
+			.find({ last_updated: { $lt: oneWeekAgo } })
+			.limit(500)
+			.toArray();
+
+		if (staleEntities.length == 0) return;
+
+		const entityIds = staleEntities.map(e => e.entity_id);
+		const names = await getNames(entityIds);
+		for (const n of names) {
+			entities.updateOne({ id: n.entity_id }, { $set: { name: n.name, last_updated: unixtime() } });
+		}
+	} finally {
+		setTimeout(entityUpdates, 1000);
+	}
+}
+
+let names_cache = {};
+let names_cache_clear = Date.now();
+async function getNames(entities, use_cache = true) {
+	// Keep the cache from getting too large
+	if (Date.now() - names_cache_clear > 3600_000) {
+		names_cache = {};
+		names_cache_clear = Date.now();
+	}
+
+	// unique IDs
+	const ids = [...new Set(entities)];
+
+	// separate cached vs missing
+	const missing = use_cache ? ids.filter(id => !(id in names_cache)) : ids;
+
+	if (missing.length > 0) {
+		const res = await fetch("https://esi.evetech.net/universe/names", {
+			method: "POST",
+			body: JSON.stringify(missing),
+			...HEADERS
+		});
+		const json = await res.json();
+
+		// add fetched names into cache
+		for (const e of json) {
+			names_cache[e.id] = e.name;
+		}
+	}
+
+	// return an object with all the requested IDs → names
+	return Object.fromEntries(ids.map(id => [id, names_cache[id]]));
+}
+
+function fillNames(names, entity) {
+	let ret = {};
+	for (let [key, value] of Object.entries(entity)) {
+		ret[key] = value;
+		ret[key.replace('_id', '_name')] = (names[value] || '???');
+	}
+	return ret;
+}
+
+
+// --- slash command definitions ---
+const commands = [
+	new SlashCommandBuilder()
+		.setName("zkillbot")
+		.setDescription("zKillBot command group")
+		.addSubcommand(sub =>
+			sub
+				.setName("invite")
+				.setDescription("Get the invite link for zKillBot")
+		)
+		.addSubcommand(sub =>
+			sub
+				.setName("subscribe")
+				.setDescription("Subscribe to an entity (character, corp, alliance)")
+				.addStringOption(opt =>
+					opt.setName("entity_id").setDescription("EVE entity ID").setRequired(true)
+				)
+		)
+		.addSubcommand(sub =>
+			sub
+				.setName("unsubscribe")
+				.setDescription("Unsubscribe from an entity")
+				.addStringOption(opt =>
+					opt.setName("entity_id").setDescription("EVE entity ID").setRequired(true)
+				)
+		)
+		.addSubcommand(sub =>
+			sub
+				.setName("list")
+				.setDescription("List all subscriptions in this channel")
+		)
+		.addSubcommand(sub =>
+			sub
+				.setName("check")
+				.setDescription("Check if the bot has permission to send messages in this channel")
+		)
+		.toJSON()
+];
+
+const rest = new REST({ version: "10" }).setToken(DISCORD_BOT_TOKEN);
+
+(async () => {
+	try {
+		console.log("🔄 Registering slash commands...");
+
+		if (process.env.NODE_ENV === "development") {
+			await rest.put(
+				Routes.applicationGuildCommands(CLIENT_ID, process.env.GUILD_ID),
+				{ body: commands }
+			);
+		} else {
+			await rest.put(
+				Routes.applicationCommands(CLIENT_ID),
+				{ body: commands }
+			);
+		}
+
+
+		console.log("✅ Slash commands registered.");
+	} catch (err) {
+		console.error("Failed to register commands:", err);
+	}
+})();
+
+client.once("clientReady", async () => {
+	console.log(`✅ Logged in as ${client.user.tag}`);
+	await initMongo();
+	await entityUpdates();
+	pollRedisQ();
+});
+
+// --- interaction handling ---
+client.on("interactionCreate", async (interaction) => {
+	if (!interaction.isChatInputCommand()) return;
+	if (interaction.commandName !== "zkillbot") return;
+
+	const guildId = interaction.guildId;
+	const channelId = interaction.channelId;
+	const sub = interaction.options.getSubcommand();
+
+	if (sub === "subscribe") {
+		const entityRaw = interaction.options.getString("entity_id");
+		const entityId = Number(entityRaw);
+		if (Number.isNaN(entityId)) {
+			return interaction.reply({
+				content: ` ❌ Unable to subscribe... **${entityRaw}** is not a number`,
+				flags: 64
+			});
+		}
+
+		let names = await getNames([entityId]);
+		if (names.length == 0) {
+			return interaction.reply({
+				content: ` ❌ Unable to subscribe... **${entityRaw}** is not a valid entity id`,
+				flags: 64
+			});
+		}
+		const name = names[entityId];
+
+		await subsCollection.updateOne(
+			{ guildId, channelId },
+			{ $addToSet: { entityIds: entityId } },
+			{ upsert: true }
+		);
+
+		await entities.updateOne(
+			{ entity_id: entityId, name: name },
+			{ $setOnInsert: { last_updated: unixtime() } },
+			{ upsert: true }
+		);
+
+		return interaction.reply({
+			content: `📡 Subscribed this channel to ${name}`,
+			flags: 64
+		});
+	}
+
+	if (sub === "unsubscribe") {
+		const entityRaw = interaction.options.getString("entity_id");
+		const entityId = Number(entityRaw);
+
+		if (Number.isNaN(entityId)) {
+			return interaction.reply({
+				content: ` ❌ Unable to unsubscribe... **${entityRaw}** is not a number`,
+				flags: 64
+			});
+		}
+
+		const res = await subsCollection.updateOne(
+			{ guildId, channelId },
+			{ $pull: { entityIds: entityId } }
+		);
+
+		if (res.modifiedCount > 0) {
+			return interaction.reply({
+				content: `❌ Unsubscribed this channel from **${entityId}**`,
+				flags: 64
+			});
+		} else {
+			return interaction.reply({
+				content: `⚠️ No subscription found for **${entityId}**`,
+				flags: 64
+			});
+		}
+	}
+
+
+	if (sub === "check") {
+		const channel = interaction.channel;
+
+		const perms = channel.permissionsFor(interaction.guild.members.me);
+
+		const canView = perms?.has("ViewChannel");
+		const canSend = perms?.has("SendMessages");
+		const canEmbed = perms?.has("EmbedLinks");
+
+		await interaction.reply({
+			content: [
+				`🔍 Permission check for <#${channel.id}>`,
+				`• View Channel: ${canView ? "✅" : "❌ (allow zkillbot#0066 to view channel)"}`,
+				`• Send Messages: ${canSend ? "✅" : "❌ (allow zkillbot#0066 to send messages)"}`,
+				`• Embed Links: ${canEmbed ? "✅" : "❌ (allow zkillbot#0066 to embed links)"}`
+			].join("\n"),
+			ephemeral: true // only visible to the user who ran it
+		});
+	}
+
+	if (sub === "invite") {
+		const inviteUrl = process.env.INVITE;
+
+		await interaction.reply({
+			content: `🔗 Invite me to your server:\n${inviteUrl}`,
+			ephemeral: true // only visible to the user
+		});
+	}
+
+
+	if (sub === "list") {
+		const doc = await subsCollection.findOne({ guildId, channelId });
+		if (!doc || !doc.entityIds || doc.entityIds.length === 0) {
+			return interaction.reply({
+				content: "ℹ️ No subscriptions in this channel.",
+				flags: 64
+			});
+		}
+
+		return interaction.reply({
+			content: `📋 Subscriptions in this channel:\n${doc.entityIds.map(id => `• ${id}`).join("\n")}`,
+			flags: 64
+		});
+	}
+});
+
+client.login(DISCORD_BOT_TOKEN);
+
+async function pollRedisQ() {
+	let wait = 500; // RedisQ allows 20 queries / 10 seconds
+	try {
+		const controller = new AbortController();
+		const timer = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
+		const res = await fetch(REDISQ_URL, { ...HEADERS, signal: controller.signal });
+		const data = await res.json();
+
+		if (data && data.package && data.package.killmail) {
+			const killmail = data.package.killmail;
+			const zkb = data.package.zkb;
+
+			// Check attackers and victim
+			const victimEntities = [
+				killmail.victim.faction_id,
+				killmail.victim.alliance_id,
+				killmail.victim.corporation_id,
+				killmail.victim.character_id,
+				killmail.victim.ship_type_id
+			].map(Number).filter(Boolean);
+
+			{
+				const matchingSubs = await subsCollection
+					.find({ entityIds: { $in: victimEntities } })
+					.toArray();
+				for (const match of matchingSubs) {
+					let colorCode = 15548997; // red
+					const channelId = match.channelId;
+					discord_posts_queue.push({ channelId, killmail, zkb, colorCode });
+				}
+			}
+
+			const attackerEntities = [
+				...killmail.attackers.map(a => a.faction_id),
+				...killmail.attackers.map(a => a.alliance_id),
+				...killmail.attackers.map(a => a.corporation_id),
+				...killmail.attackers.map(a => a.character_id),
+				...killmail.attackers.map(a => a.ship_type_id)
+			].map(Number).filter(Boolean);
+
+			const { system, constellation } = await getSystemDetails(killmail.solar_system_id);
+			attackerEntities.push(zkb.locationID);
+			attackerEntities.push(killmail.solar_system_id);
+			attackerEntities.push(system.constellation_id);
+			attackerEntities.push(constellation.region_id);
+
+			{
+				const matchingSubs = await subsCollection
+					.find({ entityIds: { $in: attackerEntities } })
+					.toArray();
+				for (const match of matchingSubs) {
+					let colorCode = 5763719; // green
+					const channelId = match.channelId;
+					discord_posts_queue.push({ channelId, killmail, zkb, colorCode });
+				}
+			}
+			app_status.redisq_count++;
+		}
+	} catch (err) {
+		if (err.name === "AbortError") {
+			console.error("Fetch timed out after 15 seconds");
+		} else {
+			console.error("Error polling RedisQ:", err);
+		}
+		wait = 5000;
+	} finally {
+		if (exiting) redisq_polling = false;
+		else setTimeout(pollRedisQ, wait);
+	}
+}
+
+async function getSystemDetails(solar_system_id) {
+	let system = await getJsonCached(`https://esi.evetech.net/universe/systems/${solar_system_id}`);
+	let constellation = await getJsonCached(`https://esi.evetech.net/universe/constellations/${system.constellation_id}`);
+	let region = await getJsonCached(`https://esi.evetech.net/universe/regions/${constellation.region_id}`);
+
+	return { system, constellation, region };
+}
+
+const json_cache = {};
+async function getJsonCached(url) {
+	let value = json_cache[url];
+	if (!value) {
+		let res = await fetch(url, HEADERS);
+		value = await res.json();
+		json_cache[url] = value;
+	}
+	return value;
+}
+
+const discord_posts_queue = [];
+function doDiscordPosts() {
+	if (discord_posts_queue.length > 0) {
+		const { channelId, killmail, zkb, colorCode } = discord_posts_queue.shift();
+		postToDiscord(channelId, killmail, zkb, colorCode);
+	}
+	setTimeout(doDiscordPosts, 100);
+}
+doDiscordPosts();
+
+async function postToDiscord(channelId, killmail, zkb, colorCode) {
+	try {
+		// ensure we haven't posted this killmail to this channel yet
+		try {
+			await sentHistory.insertOne({ channelId: channelId, killmail_id: killmail.killmail_id, createdAt: new Date() });
+		} catch (e) {
+			if (err.code === 11000) {
+				// ⚠️ Duplicate key → already sent to this channel
+			} else {
+				console.error("Insert/send failed:", err);
+			}
+			return;
+		}
+
+		const url = `https://zkillboard.com/kill/${killmail.killmail_id}/`;
+
+		let final_blow = killmail.attackers[0]; // default to first
+		for (let attacker of killmail.attackers) {
+			if (attacker.final_blow) {
+				final_blow = attacker;
+				break;
+			}
+		}
+		const [names, system] = await Promise.all([
+			getNames([...getIDs(killmail.victim), ...getIDs(final_blow)]),
+			getSystenNameAndRegion(killmail.solar_system_id)
+		]);
+
+		const victim = fillNames(names, killmail.victim);
+		let victim_url = `https://zkillboard.com/character/${victim.character_id}/`;
+		let victim_img = `https://images.evetech.net/characters/${victim.character_id}/portrait?size=64`;
+		if (!victim.character_name) {
+			victim.character_name = victim.corporation_name;
+			victim_url = `https://zkillboard.com/corporation/${victim.corporation_id}/`;
+			victim_img = `https://images.evetech.net/corporations//${victim.corporation_id}/logo?size=64`;
+		}
+		const victim_employer = victim.alliance_name ?? victim.corporation_name;
+
+		const fb = fillNames(names, final_blow);
+		let fb_img = `https://images.evetech.net/characters/${fb.character_id}/portrait?size=64`;
+		if (!fb.character_name) {
+			fb.character_name = fb.corporation_name;
+			fb_img = `https://images.evetech.net/corporations//${fb.corporation_id}/logo?size=64`;
+		}
+		if (!fb.character_name) fb.character_name = 'an NPC';
+		const fb_employer = fb.alliance_name ?? (fb.corporation_name ?? (fb.faction_name ?? '???'));
+		const solo = zkb.labels.indexOf('solo') > -1 ? ', solo, ' : '';
+		const attacker_count = killmail.attackers.length - 1;
+		const others = attacker_count > 0 ? ' along with ' + attacker_count + ' other ' + (solo > 0 ? 'npc' : 'pilot') + (attacker_count > 1 ? 's' : '') : '';
+
+		const image = `https://images.evetech.net/types/${killmail.victim.ship_type_id}/icon`;
+
+		const description = `${victim.character_name} (${victim_employer}) lost their ${victim.ship_type_name} in ${system}. Final Blow by ${fb.character_name} (${fb_employer})${solo} in their ${fb.ship_type_name}${others}. Total Value: ${zkb.totalValue.toLocaleString(LOCALE)} ISK`;
+
+		const embed = {
+			title: victim.character_name + (victim.character_name.endsWith('s') ? "' " : "'s ") + victim.ship_type_name,
+			description: description,
+			color: colorCode,
+			thumbnail: { url: image, height: 64, width: 64 },
+			fields: [
+				{ name: "Destroyed", value: `${zkb.destroyedValue.toLocaleString(LOCALE)} ISK`, inline: true },
+				{ name: "Dropped", value: `${zkb.droppedValue.toLocaleString(LOCALE)} ISK`, inline: true },
+				{ name: "Fitted", value: `${zkb.fittedValue.toLocaleString(LOCALE)} ISK`, inline: true },
+				{ name: "Involved", value: `${killmail.attackers.length.toLocaleString(LOCALE)}`, inline: true },
+				{ name: "Points", value: `${zkb.points.toLocaleString(LOCALE)}`, inline: true },
+				{ name: "Killmail Value", value: `${zkb.totalValue.toLocaleString(LOCALE)} ISK`, inline: true },
+			],
+			timestamp: new Date(killmail.killmail_time),
+			url: url,
+			author: { name: victim.character_name, icon_url: victim_img, url: victim_url },
+			footer: { text: fb.character_name, icon_url: fb_img }
+		};
+
+		try {
+			const channel = await client.channels.fetch(channelId);
+
+			if (channel && channel.isTextBased()) {
+				await channel.send({
+					embeds: [embed]
+				});
+				console.log(`Sent ${killmail.killmail_id} to channel ${channelId}`);
+
+				app_status.discord_post_count++;
+			} else {
+				console.warn(`Channel ${channelId} not found or not text-based`);
+			}
+		} catch (err) {
+			console.error(`Failed to send embed to ${channelId}:`, err);
+		}
+	} catch (e) {
+		console.log(e);
+	}
+}
+
+
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function getIDs(obj) {
+	return Object.entries(obj)
+		.filter(([key]) => key.endsWith('_id'))
+		.map(([, value]) => value);
+}
+
+async function getSystenNameAndRegion(solar_system_id) {
+	let system = await getJsonCached(`https://esi.evetech.net/universe/systems/${solar_system_id}`);
+	let constellation = await getJsonCached(`https://esi.evetech.net/universe/constellations/${system.constellation_id}`, HEADERS);
+	let region = await getJsonCached(`https://esi.evetech.net/universe/regions/${constellation.region_id}`, HEADERS);
+
+	return `${system.name} (${region.name})`;
+}
