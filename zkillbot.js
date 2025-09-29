@@ -370,7 +370,9 @@ async function pollRedisQ() {
 		const timer = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
 		const res = await fetch(REDISQ_URL, { ...HEADERS, signal: controller.signal });
-		const data = await res.json();
+		const text = await res.text();
+		if (text.trim().startsWith('<')) return;
+		const data = JSON.parse(text);
 
 		if (data && data.package && data.package.killmail) {
 			const killmail = data.package.killmail;
@@ -469,7 +471,7 @@ async function postToDiscord(channelId, killmail, zkb, colorCode) {
 		// ensure we haven't posted this killmail to this channel yet
 		try {
 			await sentHistory.insertOne({ channelId: channelId, killmail_id: killmail.killmail_id, createdAt: new Date() });
-		} catch (e) {
+		} catch (err) {
 			if (err.code === 11000) {
 				// ⚠️ Duplicate key → already sent to this channel
 			} else {
