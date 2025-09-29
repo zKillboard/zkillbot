@@ -19,18 +19,18 @@ let redisq_polling = true;
 
 async function gracefulShutdown(signal) {
 	console.log(`Signal received: ${signal}`);
-	if (exiting) return; // already cleaning up
-	exiting = true;
-
-	console.log(`⏹️ Preparing to shut down on ${signal}...`);
-
-	// wait for redisq_polling to finish and queue to drain (with 10s timeout)
-	const shutdownTimeout = Date.now() + 30_000;
-	while ((redisq_polling || discord_posts_queue.length > 0) && Date.now() < shutdownTimeout) {
-		await sleep(100);
-	}
-
 	try {
+		if (exiting) return; // already cleaning up
+		exiting = true;
+
+		console.log(`⏹️ Preparing to shut down on ${signal}...`);
+
+		// wait for redisq_polling to finish and queue to drain (with 10s timeout)
+		const shutdownTimeout = Date.now() + 30_000;
+		while ((redisq_polling || discord_posts_queue.length > 0) && Date.now() < shutdownTimeout) {
+			await sleep(100);
+		}
+
 		if (mongo) {
 			await mongo.close();
 			console.log("✅ MongoDB connection closed.");
