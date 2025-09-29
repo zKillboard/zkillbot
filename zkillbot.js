@@ -18,7 +18,6 @@ let exiting = false;
 let redisq_polling = true;
 
 async function gracefulShutdown(signal) {
-	console.log(`Signal received: ${signal}`);
 	try {
 		if (exiting) return; // already cleaning up
 		exiting = true;
@@ -157,7 +156,6 @@ function fillNames(names, entity) {
 	}
 	return ret;
 }
-
 
 // --- slash command definitions ---
 const commands = [
