@@ -30,15 +30,6 @@ async function gracefulShutdown(signal) {
 		while ((redisq_polling || discord_posts_queue.length > 0) && Date.now() < shutdownTimeout) {
 			await sleep(100);
 		}
-
-		if (mongo) {
-			await mongo.close();
-			console.log("✅ MongoDB connection closed.");
-		}
-		if (client) {
-			await client.destroy();
-			console.log("✅ Discord client destroyed.");
-		}
 		
 		shareAppStatus();
 	} catch (err) {
