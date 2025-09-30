@@ -77,6 +77,8 @@ async function initMongo() {
 
 	subsCollection = db.collection("subscriptions");
 	await subsCollection.createIndex({ entityIds: 1 });
+	await subsCollection.createIndex({ iskValue: 1 });
+	await subsCollection.createIndex({ labels: 1 });
 	console.log("✅ Connected to MongoDB");
 }
 
@@ -167,12 +169,13 @@ const commands = [
 				.setName("invite")
 				.setDescription("Get the invite link for zKillBot")
 		)
+		
 		.addSubcommand(sub =>
 			sub
 				.setName("subscribe")
-				.setDescription("Subscribe to an entity (character, corp, alliance)")
+				.setDescription("Name, ID, or prefixed with isk: or label:")
 				.addStringOption(opt =>
-					opt.setName("entity_id").setDescription("EVE entity ID").setRequired(true)
+					opt.setName("filter").setDescription("Name, ID, or prefixed with isk: or label:").setRequired(true)
 				)
 		)
 		.addSubcommand(sub =>
@@ -180,7 +183,7 @@ const commands = [
 				.setName("unsubscribe")
 				.setDescription("Unsubscribe from an entity")
 				.addStringOption(opt =>
-					opt.setName("entity_id").setDescription("EVE entity ID").setRequired(true)
+					opt.setName("filter").setDescription("EVE entity ID").setRequired(true)
 				)
 		)
 		.addSubcommand(sub =>
@@ -207,15 +210,14 @@ const rest = new REST({ version: "10" }).setToken(DISCORD_BOT_TOKEN);
 				Routes.applicationGuildCommands(CLIENT_ID, process.env.GUILD_ID),
 				{ body: commands }
 			);
+			console.log("✅ DEVELOPMENT Slash commands registered.");
 		} else {
 			await rest.put(
 				Routes.applicationCommands(CLIENT_ID),
 				{ body: commands }
 			);
+			console.log("✅ Slash commands registered.");
 		}
-
-
-		console.log("✅ Slash commands registered.");
 	} catch (err) {
 		console.error("Failed to register commands:", err);
 	}
@@ -239,44 +241,96 @@ client.on("interactionCreate", async (interaction) => {
 		const sub = interaction.options.getSubcommand();
 
 		if (sub === "subscribe") {
-			const entityRaw = interaction.options.getString("entity_id");
-			const entityId = Number(entityRaw);
-			if (Number.isNaN(entityId)) {
+			let valueRaw = getFirstString(interaction, ["query", "value", "entity_id"]);
+
+			if (valueRaw.startsWith('isk:')) {
+				const split = valueRaw.split('isk:');
+				const iskValue = Number(split[1]);
+				if (Number.isNaN(iskValue)) {
+					return interaction.reply({
+						content: ` ❌ Unable to subscribe... **${valueRaw}** is not a number`,
+						flags: 64
+					});
+				}
+				if (iskValue < 100000000) {
+					return interaction.reply({
+						content: ` ❌ Unable to subscribe... **${valueRaw}** needs to be at least 100 million`,
+						flags: 64
+					});
+				}
+
+				await subsCollection.updateOne(
+					{ guildId, channelId },
+					{ $set: { iskValue: iskValue } },
+					{ upsert: true }
+				);
+
 				return interaction.reply({
-					content: ` ❌ Unable to subscribe... **${entityRaw}** is not a number`,
+					content: `📡 Subscribed killmails having iskValue of at least ${iskValue} to channel`,
+					flags: 64
+				});
+			} else if (valueRaw.startsWith('label:')) {
+
+			} else {
+				const entityId = Number(valueRaw);
+				if (Number.isNaN(entityId)) {
+					return interaction.reply({
+						content: ` ❌ Unable to subscribe... **${valueRaw}** is not a number`,
+						flags: 64
+					});
+				}
+
+				let names = await getNames([entityId]);
+				if (names.length == 0) {
+					return interaction.reply({
+						content: ` ❌ Unable to subscribe... **${valueRaw}** is not a valid entity id`,
+						flags: 64
+					});
+				}
+				const name = names[entityId];
+
+				await subsCollection.updateOne(
+					{ guildId, channelId },
+					{ $addToSet: { entityIds: entityId } },
+					{ upsert: true }
+				);
+
+				await entities.updateOne(
+					{ entity_id: entityId, name: name },
+					{ $setOnInsert: { last_updated: unixtime() } },
+					{ upsert: true }
+				);
+
+				return interaction.reply({
+					content: `📡 Subscribed this channel to ${name}`,
 					flags: 64
 				});
 			}
-
-			let names = await getNames([entityId]);
-			if (names.length == 0) {
-				return interaction.reply({
-					content: ` ❌ Unable to subscribe... **${entityRaw}** is not a valid entity id`,
-					flags: 64
-				});
-			}
-			const name = names[entityId];
-
-			await subsCollection.updateOne(
-				{ guildId, channelId },
-				{ $addToSet: { entityIds: entityId } },
-				{ upsert: true }
-			);
-
-			await entities.updateOne(
-				{ entity_id: entityId, name: name },
-				{ $setOnInsert: { last_updated: unixtime() } },
-				{ upsert: true }
-			);
-
-			return interaction.reply({
-				content: `📡 Subscribed this channel to ${name}`,
-				flags: 64
-			});
 		}
 
+
 		if (sub === "unsubscribe") {
-			const entityRaw = interaction.options.getString("entity_id");
+			let valueRaw = getFirstString(interaction, ["query", "value", "entity_id"]);
+
+			if (valueRaw.startsWith('isk')) {
+				const res = await subsCollection.updateOne(
+					{ guildId, channelId },
+					{ $unset: { iskValue: 1 } }
+				);
+
+				if (res.modifiedCount > 0) {
+					return interaction.reply({
+						content: `❌ Unsubscribed this channel from killmails of a minimum isk value`,
+						flags: 64
+					});
+				} else {
+					return interaction.reply({
+						content: `⚠️ No subscription found for killmails of a minimum isk value`,
+						flags: 64
+					});
+				}
+			}
+
 			const entityId = Number(entityRaw);
 
 			if (Number.isNaN(entityId)) {
@@ -345,14 +399,16 @@ client.on("interactionCreate", async (interaction) => {
 			}
 
 			// 🔑 resolve IDs to names
-			const names = await getNames(doc.entityIds);
+			const names = await getNames(doc.entityIds || []);
+			let lines = (doc.entityIds || [])
+				.map(id => `• ${id} — ${names[id] ?? "Unknown"}`)
+				.join("\n");
+			if (doc.iskValue) {
+				lines += `\isk: >= ${doc.iskValue}`;
+			}
 
 			return interaction.reply({
-				content:
-					"📋 Subscriptions in this channel:\n" +
-					doc.entityIds
-						.map(id => `• ${id} — ${names[id] ?? "Unknown"}`)
-						.join("\n"),
+				content: `📋 Subscriptions in this channel:\n${lines}`,
 				flags: 64
 			});
 		}
@@ -387,6 +443,7 @@ async function pollRedisQ() {
 				killmail.victim.ship_type_id
 			].map(Number).filter(Boolean);
 
+			// Victims
 			{
 				const matchingSubs = await subsCollection
 					.find({ entityIds: { $in: victimEntities } })
@@ -412,6 +469,7 @@ async function pollRedisQ() {
 			attackerEntities.push(system.constellation_id);
 			attackerEntities.push(constellation.region_id);
 
+			// Attackers
 			{
 				const matchingSubs = await subsCollection
 					.find({ entityIds: { $in: attackerEntities } })
@@ -422,6 +480,19 @@ async function pollRedisQ() {
 					discord_posts_queue.push({ channelId, killmail, zkb, colorCode });
 				}
 			}
+
+			// ISK
+			{
+				const matchingSubs = await subsCollection
+					.find({ iskValue: { $lte: zkb.totalValue } })
+					.toArray();
+				for (const match of matchingSubs) {
+					let colorCode = 12092939; // gold
+					const channelId = match.channelId;
+					discord_posts_queue.push({ channelId, killmail, zkb, colorCode });
+				}
+			}
+
 			app_status.redisq_count++;
 		}
 	} catch (err) {
@@ -575,4 +646,14 @@ async function getSystenNameAndRegion(solar_system_id) {
 	let region = await getJsonCached(`https://esi.evetech.net/universe/regions/${constellation.region_id}`, HEADERS);
 
 	return `${system.name} (${region.name})`;
+}
+
+function getFirstString(interaction, optionNames, defaultValue = "0") {
+	for (const name of optionNames) {
+		const value = interaction.options.getString(name);
+		if (value) {
+			return value.trim();
+		}
+	}
+	return defaultValue;
 }
