@@ -754,11 +754,11 @@ function handleAutoComplete(interaction) {
             const { guildId, channelId } = interaction;
             subsCollection.findOne({ guildId, channelId }).then(doc => {
                 let entityIds = doc?.entityIds || [];
-                entities.find({ entity_id: { $in: entityIds } }).toArray().then(ents => {
+                getNames(entityIds).then(names => {
                     const options = [];
-                    ents.forEach(entry => {
-                        options.push({name: `${entry.entity_id}:${entry.name}`, value: `${entry.entity_id}`});
-                    });
+                    for (const id in names) {
+                        options.push({name: `${id}:${names[id]}`, value: `${id}`});
+                    }
                     const labels = doc?.labels || [];
                     for (let label of labels) {
                         options.push({name: `label:${label}`, value: `label:${label}`});
@@ -773,16 +773,13 @@ function handleAutoComplete(interaction) {
                     }
                 }).catch(err => {
                     console.error("AutoComplete error while trying to fetch entities:", err);
-                    interaction.respond(`An error occurred while fetching entities`);
                 })
             }).catch(err => {
                 console.error("AutoComplete error while trying to fetch subscriptions:", err);
-                interaction.respond(`An error occurred while fetching subscriptions`);
             })
         }
     } catch (err) {
         console.error("AutoComplete error:", err);
-        interaction.respond(`An error occurred while handling autocomplete`);
     }
 }
 
