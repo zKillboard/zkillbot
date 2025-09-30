@@ -383,7 +383,7 @@ client.on("interactionCreate", async (interaction) => {
 
 					// we will add groups, but omitting for now
 					suggestions = suggestions.filter(
-						s => !s.value.includes("(Closed)") && !s.value.includes("(group)")
+						s => !s.value.includes("(Closed)") && s.data.type != "group"
 					);
 
 					if (suggestions.length > 1) {
