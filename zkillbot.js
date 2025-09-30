@@ -181,9 +181,9 @@ const commands = [
 		.addSubcommand(sub =>
 			sub
 				.setName("unsubscribe")
-				.setDescription(("Unsubscribe by name, ID, or prefixed with isk: or label:")
+				.setDescription("Unsubscribe by name, ID, or prefixed with isk: or label:")
 				.addStringOption(opt =>
-					opt.setName("filter").setDescription(("Unsubscribe by name, ID, or prefixed with isk: or label:").setRequired(true)
+					opt.setName("filter").setDescription("Unsubscribe by name, ID, or prefixed with isk: or label:").setRequired(true)
 				)
 		)
 		.addSubcommand(sub =>
