@@ -379,10 +379,16 @@ client.on("interactionCreate", async (interaction) => {
 				let entityId = Number(valueRaw);
 				if (Number.isNaN(entityId)) {
 					const res = await fetch(`https://zkillboard.com/cache/1hour/autocomplete/?query=${valueRaw}`);
-					const suggestions = (await res.json()).suggestions;
+					let suggestions = (await res.json()).suggestions;
+
+					// we will add groups, but omitting for now
+					suggestions = suggestions.filter(
+						s => !s.value.includes("(Closed)") && !s.value.includes("(group)")
+					);
 
 					if (suggestions.length > 1) {
 						const formatted = suggestions
+							.filter(s => !s.value.includes("(Closed)") && !s.value.includes("(group)"))
 							.map(s => `${s.data.id} — ${s.value} (${s.data.type})`)
 							.join("\n");
 
