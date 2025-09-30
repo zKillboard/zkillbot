@@ -458,23 +458,24 @@ client.on("interactionCreate", async (interaction) => {
 
 		if (sub === "list") {
 			const doc = await subsCollection.findOne({ guildId, channelId });
-			if (!doc || !doc.entityIds || doc.entityIds.length === 0) {
-				return interaction.reply({
-					content: "ℹ️ No subscriptions in this channel.",
-					flags: 64
-				});
-			}
+			let entityIds = doc?.entityIds || [];
 
 			// 🔑 resolve IDs to names
-			const names = await getNames(doc.entityIds || []);
-			let lines = (doc.entityIds || [])
+			const names = await getNames(entityIds);
+			let lines = (entityIds || [])
 				.map(id => `• ${id} — ${names[id] ?? "Unknown"}`)
 				.join("\n");
-			if (doc.iskValue) {
-				lines += `\nisk: >= ${doc.iskValue}`;
+			if (doc?.iskValue) {
+				lines += `\nisk: >= ${doc?.iskValue}`;
 			}
-			if (doc.labels && doc.labels.length > 0) {
+			if (doc?.labels && doc?.labels?.length > 0) {
 				lines += '\nlabels: ' + doc.labels.join(', ');
+			}
+			if (lines.length == 0) {
+				return interaction.reply({
+					content: `📋 You have no subscriptions in this channel`,
+					flags: 64
+				});
 			}
 
 			return interaction.reply({
