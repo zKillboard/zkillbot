@@ -173,17 +173,17 @@ const commands = [
 		.addSubcommand(sub =>
 			sub
 				.setName("subscribe")
-				.setDescription("Name, ID, or prefixed with isk: or label:")
+				.setDescription("Subscribe by name, ID, or prefixed with isk: or label:")
 				.addStringOption(opt =>
-					opt.setName("filter").setDescription("Name, ID, or prefixed with isk: or label:").setRequired(true)
+					opt.setName("filter").setDescription("Subscribe by name, ID, or prefixed with isk: or label:").setRequired(true)
 				)
 		)
 		.addSubcommand(sub =>
 			sub
 				.setName("unsubscribe")
-				.setDescription("Unsubscribe from an entity")
+				.setDescription(("Unsubscribe by name, ID, or prefixed with isk: or label:")
 				.addStringOption(opt =>
-					opt.setName("filter").setDescription("EVE entity ID").setRequired(true)
+					opt.setName("filter").setDescription(("Unsubscribe by name, ID, or prefixed with isk: or label:").setRequired(true)
 				)
 		)
 		.addSubcommand(sub =>
@@ -241,7 +241,7 @@ client.on("interactionCreate", async (interaction) => {
 		const sub = interaction.options.getSubcommand();
 
 		if (sub === "subscribe") {
-			let valueRaw = getFirstString(interaction, ["query", "value", "entity_id"]);
+			let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
 
 			if (valueRaw.startsWith('isk:')) {
 				const split = valueRaw.split('isk:');
@@ -310,7 +310,7 @@ client.on("interactionCreate", async (interaction) => {
 
 
 		if (sub === "unsubscribe") {
-			let valueRaw = getFirstString(interaction, ["query", "value", "entity_id"]);
+			let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
 
 			if (valueRaw.startsWith('isk')) {
 				const res = await subsCollection.updateOne(
