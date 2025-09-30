@@ -301,12 +301,29 @@ client.on("interactionCreate", async (interaction) => {
 					flags: 64
 				});
 			} else {
-				const entityId = Number(valueRaw);
+				let entityId = Number(valueRaw);
 				if (Number.isNaN(entityId)) {
-					return interaction.reply({
-						content: ` ❌ Unable to subscribe... **${valueRaw}** is not a number`,
-						flags: 64
-					});
+					const res = await fetch(`https://zkillboard.com/cache/1hour/autocomplete/?query=${valueRaw}`);
+					const suggestions = (await res.json()).suggestions;
+
+					if (suggestions.length > 1) {
+						const formatted = suggestions
+							.map(s => `${s.data.id} — ${s.value} (${s.data.type})`)
+							.join("\n");
+
+						return interaction.reply({
+							content: ` ❕Too many results for **${valueRaw}**, pick one by ID or use a more specific query:\n${formatted}`,
+							flags: 64
+						});
+					}
+
+					if (suggestions.length == 0) {
+						return interaction.reply({
+							content: ` ❌ Unable to subscribe... **${valueRaw}** did not come up with any search reults`,
+							flags: 64
+						});
+					}
+					entityId = suggestions[0].data.id;
 				}
 
 				let names = await getNames([entityId]);
