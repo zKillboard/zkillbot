@@ -207,6 +207,11 @@ const commands = [
 				.setName("check")
 				.setDescription("Check if the bot has permission to send messages in this channel")
 		)
+		.addSubcommand(sub =>
+			sub
+				.setName("remove_all_subs")
+				.setDescription("Clears all subscriptions in this channel")
+		)
 		.toJSON()
 ];
 
@@ -354,7 +359,6 @@ client.on("interactionCreate", async (interaction) => {
 			}
 		}
 
-
 		if (sub === "unsubscribe") {
 			let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
 
@@ -398,7 +402,6 @@ client.on("interactionCreate", async (interaction) => {
 			}
 
 			const entityId = Number(valueRaw);
-
 			if (Number.isNaN(entityId)) {
 				return interaction.reply({
 					content: ` ❌ Unable to unsubscribe... **${valueRaw}** is not a number`,
@@ -423,7 +426,6 @@ client.on("interactionCreate", async (interaction) => {
 				});
 			}
 		}
-
 
 		if (sub === "check") {
 			const channel = interaction.channel;
@@ -454,7 +456,6 @@ client.on("interactionCreate", async (interaction) => {
 			});
 		}
 
-
 		if (sub === "list") {
 			const doc = await subsCollection.findOne({ guildId, channelId });
 			if (!doc || !doc.entityIds || doc.entityIds.length === 0) {
@@ -478,6 +479,17 @@ client.on("interactionCreate", async (interaction) => {
 
 			return interaction.reply({
 				content: `📋 Subscriptions in this channel:\n${lines}`,
+				flags: 64
+			});
+		}
+
+		if (sub == "remove_all_subs") {
+			await subsCollection.deleteOne(
+				{ guildId, channelId }
+			);
+
+			return interaction.reply({
+				content: `❌ All subscriptions removed from this channel`,
 				flags: 64
 			});
 		}
