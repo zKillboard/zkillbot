@@ -17,6 +17,17 @@ const HEADERS = {
 let exiting = false;
 let redisq_polling = true;
 
+const LABEL_FILTERS = [
+	"#:1", "#:10+", "#:100+", "#:1000+", "#:2+", "#:25+", "#:5+", "#:50+",
+	"atShip", "awox", "bigisk", "capital",
+	"cat:11", "cat:18", "cat:22", "cat:23", "cat:350001", "cat:40", "cat:46", "cat:6", "cat:65", "cat:87",
+	"concord", "extremeisk", "ganked", "insaneisk",
+	"isk:100b+", "isk:10b+", "isk:1b+", "isk:1t+", "isk:5b+",
+	"loc:abyssal", "loc:drifter", "loc:highsec", "loc:lowsec", "loc:nullsec", "loc:w-space",
+	"npc", "padding", "pvp", "solo",
+	"tz:au", "tz:eu", "tz:ru", "tz:use", "tz:usw"
+];
+
 async function gracefulShutdown(signal) {
 	try {
 		if (exiting) return; // already cleaning up
@@ -230,6 +241,8 @@ client.once("clientReady", async () => {
 	pollRedisQ();
 });
 
+const ISK_PREFIX = 'isk:', LABEL_PREFIX = 'label:';
+
 // --- interaction handling ---
 client.on("interactionCreate", async (interaction) => {
 	try {
@@ -243,9 +256,8 @@ client.on("interactionCreate", async (interaction) => {
 		if (sub === "subscribe") {
 			let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
 
-			if (valueRaw.startsWith('isk:')) {
-				const split = valueRaw.split('isk:');
-				const iskValue = Number(split[1]);
+			if (valueRaw.startsWith(ISK_PREFIX)) {
+				const iskValue = Number(valueRaw.substr(ISK_PREFIX.length));
 				if (Number.isNaN(iskValue)) {
 					return interaction.reply({
 						content: ` ❌ Unable to subscribe... **${valueRaw}** is not a number`,
@@ -269,8 +281,25 @@ client.on("interactionCreate", async (interaction) => {
 					content: `📡 Subscribed killmails having iskValue of at least ${iskValue} to channel`,
 					flags: 64
 				});
-			} else if (valueRaw.startsWith('label:')) {
+			} else if (valueRaw.startsWith(LABEL_PREFIX)) {
+				const label_filter = valueRaw.substr(LABEL_PREFIX.length);
+				if (LABEL_FILTERS.indexOf(label_filter) < 0) {
+					return interaction.reply({
+						content: ` ❌ Unable to subscribe to label **${label_filter}**, it is not one of the following:\n` + LABEL_FILTERS.join(', '),
+						flags: 64
+					});
+				}
 
+				await subsCollection.updateOne(
+					{ guildId, channelId },
+					{ $addToSet: { labels: label_filter } },
+					{ upsert: true }
+				);
+
+				return interaction.reply({
+					content: `📡 Subscribed this channel to killmails having label **${label_filter}**`,
+					flags: 64
+				});
 			} else {
 				const entityId = Number(valueRaw);
 				if (Number.isNaN(entityId)) {
@@ -312,7 +341,7 @@ client.on("interactionCreate", async (interaction) => {
 		if (sub === "unsubscribe") {
 			let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
 
-			if (valueRaw.startsWith('isk')) {
+			if (valueRaw.startsWith(ISK_PREFIX)) {
 				const res = await subsCollection.updateOne(
 					{ guildId, channelId },
 					{ $unset: { iskValue: 1 } }
@@ -331,11 +360,31 @@ client.on("interactionCreate", async (interaction) => {
 				}
 			}
 
-			const entityId = Number(entityRaw);
+			if (valueRaw.startsWith(LABEL_PREFIX)) {
+				const label_filter = valueRaw.substr(LABEL_PREFIX.length);
+				const res = await subsCollection.updateOne(
+					{ guildId, channelId },
+					{ $pull: { labels: label_filter } }
+				);
+
+				if (res.modifiedCount > 0) {
+					return interaction.reply({
+						content: `❌ Unsubscribed this channel from label **${label_filter}**`,
+						flags: 64
+					});
+				} else {
+					return interaction.reply({
+						content: `⚠️ No subscription found for label **${label_filter}**`,
+						flags: 64
+					});
+				}
+			}
+
+			const entityId = Number(valueRaw);
 
 			if (Number.isNaN(entityId)) {
 				return interaction.reply({
-					content: ` ❌ Unable to unsubscribe... **${entityRaw}** is not a number`,
+					content: ` ❌ Unable to unsubscribe... **${valueRaw}** is not a number`,
 					flags: 64
 				});
 			}
@@ -404,7 +453,10 @@ client.on("interactionCreate", async (interaction) => {
 				.map(id => `• ${id} — ${names[id] ?? "Unknown"}`)
 				.join("\n");
 			if (doc.iskValue) {
-				lines += `\isk: >= ${doc.iskValue}`;
+				lines += `\nisk: >= ${doc.iskValue}`;
+			}
+			if (doc.labels && doc.labels.length > 0) {
+				lines += '\nlabels: ' + doc.labels.join(', ');
 			}
 
 			return interaction.reply({
@@ -488,6 +540,18 @@ async function pollRedisQ() {
 					.toArray();
 				for (const match of matchingSubs) {
 					let colorCode = 12092939; // gold
+					const channelId = match.channelId;
+					discord_posts_queue.push({ channelId, killmail, zkb, colorCode });
+				}
+			}
+
+			// Labels
+			{
+				const matchingSubs = await subsCollection
+					.find({ labels: { $in: zkb.labels } })
+					.toArray();
+				for (const match of matchingSubs) {
+					let colorCode = 5763719; // green
 					const channelId = match.channelId;
 					discord_posts_queue.push({ channelId, killmail, zkb, colorCode });
 				}
