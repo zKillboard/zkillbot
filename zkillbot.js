@@ -258,6 +258,76 @@ client.on("interactionCreate", async (interaction) => {
 		const channelId = interaction.channelId;
 		const sub = interaction.options.getSubcommand();
 
+		if (sub === "invite") {
+			const inviteUrl = process.env.INVITE;
+
+			await interaction.reply({
+				content: `🔗 Invite me to your server:\n${inviteUrl}`,
+				flags: 64
+			});
+		}
+
+		if (sub === "list") {
+			const doc = await subsCollection.findOne({ guildId, channelId });
+			let entityIds = doc?.entityIds || [];
+
+			// 🔑 resolve IDs to names
+			const names = await getNames(entityIds);
+			let lines = (entityIds || [])
+				.map(id => `• ${id} — ${names[id] ?? "Unknown"}`)
+				.join("\n");
+			if (doc?.iskValue) {
+				lines += `\nisk: >= ${doc?.iskValue}`;
+			}
+			if (doc?.labels && doc?.labels?.length > 0) {
+				lines += '\nlabels: ' + doc.labels.join(', ');
+			}
+			if (lines.length == 0) {
+				return interaction.reply({
+					content: `📋 You have no subscriptions in this channel`,
+					flags: 64
+				});
+			}
+
+			return interaction.reply({
+				content: `📋 Subscriptions in this channel:\n${lines}`,
+				flags: 64
+			});
+		}
+
+		const canManageChannel = interaction.channel
+			.permissionsFor(interaction.member)
+			.has("ManageChannels");
+		
+
+		if (sub === "check") {
+			const channel = interaction.channel;
+
+			const perms = channel.permissionsFor(interaction.guild.members.me);
+
+			const canView = perms?.has("ViewChannel");
+			const canSend = perms?.has("SendMessages");
+			const canEmbed = perms?.has("EmbedLinks");
+
+			await interaction.reply({
+				content: [
+					`🔍 Permission check for <#${channel.id}>`,
+					`• View Channel: ${canView ? "✅" : "❌ (allow zkillbot#0066 to view channel)"}`,
+					`• Send Messages: ${canSend ? "✅" : "❌ (allow zkillbot#0066 to send messages)"}`,
+					`• Embed Links: ${canEmbed ? "✅" : "❌ (allow zkillbot#0066 to embed links)"}`,
+					`• You do ` + (canManageChannel ? '' : 'not ' ) + `have permissions to [un]subscribe for this channel`
+				].join("\n"),
+				flags: 64
+			});
+		}
+
+		if (!canManageChannel) {
+			return interaction.reply({
+				content: "❌ ACCESS DENIED - insufficent perimssions ❌",
+				flags: 64 // ephemeral
+			});
+		}
+
 		if (sub === "subscribe") {
 			let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
 
@@ -425,63 +495,6 @@ client.on("interactionCreate", async (interaction) => {
 					flags: 64
 				});
 			}
-		}
-
-		if (sub === "check") {
-			const channel = interaction.channel;
-
-			const perms = channel.permissionsFor(interaction.guild.members.me);
-
-			const canView = perms?.has("ViewChannel");
-			const canSend = perms?.has("SendMessages");
-			const canEmbed = perms?.has("EmbedLinks");
-
-			await interaction.reply({
-				content: [
-					`🔍 Permission check for <#${channel.id}>`,
-					`• View Channel: ${canView ? "✅" : "❌ (allow zkillbot#0066 to view channel)"}`,
-					`• Send Messages: ${canSend ? "✅" : "❌ (allow zkillbot#0066 to send messages)"}`,
-					`• Embed Links: ${canEmbed ? "✅" : "❌ (allow zkillbot#0066 to embed links)"}`
-				].join("\n"),
-				flags: 64
-			});
-		}
-
-		if (sub === "invite") {
-			const inviteUrl = process.env.INVITE;
-
-			await interaction.reply({
-				content: `🔗 Invite me to your server:\n${inviteUrl}`,
-				flags: 64
-			});
-		}
-
-		if (sub === "list") {
-			const doc = await subsCollection.findOne({ guildId, channelId });
-			let entityIds = doc?.entityIds || [];
-
-			// 🔑 resolve IDs to names
-			const names = await getNames(entityIds);
-			let lines = (entityIds || [])
-				.map(id => `• ${id} — ${names[id] ?? "Unknown"}`)
-				.join("\n");
-			if (doc?.iskValue) {
-				lines += `\nisk: >= ${doc?.iskValue}`;
-			}
-			if (doc?.labels && doc?.labels?.length > 0) {
-				lines += '\nlabels: ' + doc.labels.join(', ');
-			}
-			if (lines.length == 0) {
-				return interaction.reply({
-					content: `📋 You have no subscriptions in this channel`,
-					flags: 64
-				});
-			}
-
-			return interaction.reply({
-				content: `📋 Subscriptions in this channel:\n${lines}`,
-				flags: 64
-			});
 		}
 
 		if (sub == "remove_all_subs") {
