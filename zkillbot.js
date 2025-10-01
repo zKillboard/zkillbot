@@ -388,7 +388,6 @@ client.on("interactionCreate", async (interaction) => {
 
 					if (suggestions.length > 1) {
 						const formatted = suggestions
-							.filter(s => !s.value.includes("(Closed)") && !s.value.includes("(group)"))
 							.map(s => `${s.data.id} — ${s.value} (${s.data.type})`)
 							.join("\n");
 
@@ -723,6 +722,7 @@ async function postToDiscord(channelId, killmail, zkb, colorCode) {
 			footer: { text: fb.character_name, icon_url: fb_img }
 		};
 
+		let remove = false;
 		try {
 			const channel = await client.channels.fetch(channelId);
 
@@ -732,11 +732,14 @@ async function postToDiscord(channelId, killmail, zkb, colorCode) {
 				});
 				app_status.discord_post_count++;
 			} else {
-				console.warn(`Channel ${channelId} not found or not text-based`);
+				// We shouldn't even be here!
+				remove = true;
 			}
 		} catch (err) {
-			console.error(`Failed to send embed to ${channelId}:`, err);
+			// lost permissions, or never had them, so we will remove the subscriptions for this channel
+			remove = true;
 		}
+		if (remove) await subsCollection.deleteMany({ channelId: channelId });
 	} catch (e) {
 		console.log(e);
 	}
