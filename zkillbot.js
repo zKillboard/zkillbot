@@ -308,6 +308,7 @@ client.on("interactionCreate", async (interaction) => {
 			const canView = perms?.has("ViewChannel");
 			const canSend = perms?.has("SendMessages");
 			const canEmbed = perms?.has("EmbedLinks");
+			const isTextBased = channel.isTextBased();
 
 			await interaction.reply({
 				content: [
@@ -315,10 +316,19 @@ client.on("interactionCreate", async (interaction) => {
 					`• View Channel: ${canView ? "✅" : "❌ (allow zkillbot#0066 to view channel)"}`,
 					`• Send Messages: ${canSend ? "✅" : "❌ (allow zkillbot#0066 to send messages)"}`,
 					`• Embed Links: ${canEmbed ? "✅" : "❌ (allow zkillbot#0066 to embed links)"}`,
+					`• Text Based Channel: ${isTextBased ? "✅" : "❌ (channel is not a text based channel)"}`,
 					`• You do ` + (canManageChannel ? '' : 'not ' ) + `have permissions to [un]subscribe for this channel`
 				].join("\n"),
 				flags: 64
 			});
+
+			if (canView && canSend && canEmbed && isTextBased && canManageChannel) {
+				await subsCollection.updateOne(
+					{ guildId, channelId },
+					{ $set: { checked: true } },
+					{ upsert: true }
+				);
+			}
 		}
 
 		if (!canManageChannel) {
@@ -329,6 +339,14 @@ client.on("interactionCreate", async (interaction) => {
 		}
 
 		if (sub === "subscribe") {
+			let doc = await subsCollection.findOne({ channelId: channelId });
+			if (!doc || doc.checked != true) {
+				return interaction.reply({
+					content: ` 🛑 Before you subscribe, please run **/zkillbot check** to ensure all permissions are set properly for this channel`,
+					flags: 64
+				});
+			}
+
 			let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
 
 			if (valueRaw.startsWith(ISK_PREFIX)) {
