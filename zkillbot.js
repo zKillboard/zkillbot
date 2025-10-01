@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder } from "discord.js";
+import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 
@@ -727,19 +727,32 @@ async function postToDiscord(channelId, killmail, zkb, colorCode) {
 			const channel = await client.channels.fetch(channelId);
 
 			if (channel && channel.isTextBased()) {
-				await channel.send({
-					embeds: [embed]
-				});
-				app_status.discord_post_count++;
+				const canSend = channel.permissionsFor(client.user)?.has([
+					PermissionFlagsBits.ViewChannel,
+					PermissionFlagsBits.SendMessages,
+					PermissionFlagsBits.EmbedLinks
+				]);
+
+				if (canSend) {
+					await channel.send({
+						embeds: [embed]
+					});
+					app_status.discord_post_count++;
+				} else {
+					remove = true;
+				}
 			} else {
 				// We shouldn't even be here!
 				remove = true;
 			}
 		} catch (err) {
-			// lost permissions, or never had them, so we will remove the subscriptions for this channel
-			remove = true;
+			// Something went wrong... keep the error in the logs but don't remove subscriptions just yet
+			console.error(`Failed to send embed to ${channelId}:`, err);
 		}
-		if (remove) await subsCollection.deleteMany({ channelId: channelId });
+		if (remove) {
+			await subsCollection.deleteMany({ channelId: channelId });
+			console.error(`Removing subscriptions for ${channelId}`);
+		}
 	} catch (e) {
 		console.log(e);
 	}
