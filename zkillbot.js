@@ -3,42 +3,28 @@ import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, Permissio
 import NodeCache from "node-cache";
 
 import dotenv from "dotenv";
-
 dotenv.config({ quiet: true });
+
+import { shareAppStatus, app_status } from "./util/shareAppStatus.js"; 
+import { HEADERS, LABEL_FILTERS, SEVEN_DAYS } from "./util/constants.js";
 
 const { DISCORD_BOT_TOKEN, CLIENT_ID, MONGO_URI, MONGO_DB, REDISQ_URL, LOCALE } = process.env;
 
-const HEADERS = {
-	headers: {
-		"User-Agent": "zKillBot",
-		"Accept": "application/json"
-	}
-}
-
-let exiting = false;
-let redisq_polling = true;
-
-const LABEL_FILTERS = [
-	"#:1", "#:10+", "#:100+", "#:1000+", "#:2+", "#:25+", "#:5+", "#:50+",
-	"atShip", "awox", "bigisk", "capital",
-	"cat:11", "cat:18", "cat:22", "cat:23", "cat:350001", "cat:40", "cat:46", "cat:6", "cat:65", "cat:87",
-	"concord", "extremeisk", "ganked", "insaneisk",
-	"isk:100b+", "isk:10b+", "isk:1b+", "isk:1t+", "isk:5b+",
-	"loc:abyssal", "loc:drifter", "loc:highsec", "loc:lowsec", "loc:nullsec", "loc:w-space",
-	"npc", "padding", "pvp", "solo",
-	"tz:au", "tz:eu", "tz:ru", "tz:use", "tz:usw"
-];
+// listen for both SIGINT and SIGTERM
+["SIGINT", "SIGTERM"].forEach(sig => {
+	process.on(sig, () => gracefulShutdown(sig));
+});
 
 async function gracefulShutdown(signal) {
 	try {
-		if (exiting) return; // already cleaning up
-		exiting = true;
+		if (app_status.exiting) return; // already cleaning up
+		app_status.exiting = true;
 
 		console.log(`⏹️ Preparing to shut down on ${signal}...`);
 
 		// wait for redisq_polling to finish and queue to drain (with 10s timeout)
 		const shutdownTimeout = Date.now() + 30_000;
-		while ((redisq_polling || discord_posts_queue.length > 0) && Date.now() < shutdownTimeout) {
+		while ((app_status.redisq_polling || discord_posts_queue.length > 0) && Date.now() < shutdownTimeout) {
 			await sleep(100);
 		}
 		
@@ -51,12 +37,6 @@ async function gracefulShutdown(signal) {
 	process.exit(0);
 }
 
-// listen for both SIGINT and SIGTERM
-["SIGINT", "SIGTERM"].forEach(sig => {
-	process.on(sig, () => gracefulShutdown(sig));
-});
-
-
 if (!DISCORD_BOT_TOKEN || !CLIENT_ID || !MONGO_URI || !MONGO_DB) {
 	console.error("❌ Missing required env vars");
 	process.exit(1);
@@ -66,24 +46,9 @@ const client = new Client({
 	intents: [GatewayIntentBits.Guilds],
 });
 
-export const SEVEN_DAYS = 604800;
 function unixtime() {
 	return Math.floor(Date.now() / 1000);
 }
-
-let app_status = { redisq_count: 0, discord_post_count: 0 };
-function shareAppStatus() {
-	const line =
-		"📡" +
-		" RedisQ polls:".padEnd(20) + String(app_status.redisq_count).padStart(5) +
-		"  Discord Queue:".padEnd(20) + String(discord_posts_queue.length).padStart(5) +
-		"  Discord Posts:".padEnd(20) + String(app_status.discord_post_count).padStart(5);
-
-	console.log(line);
-	app_status = { redisq_count: 0, discord_post_count: 0 };
-	setTimeout(shareAppStatus, 33333);
-}
-setTimeout(shareAppStatus, 33333);
 
 async function entityUpdates(db) {
 	try {
@@ -619,7 +584,7 @@ async function pollRedisQ(db) {
 		}
 		wait = 5000;
 	} finally {
-		if (exiting) redisq_polling = false;
+		if (app_status.exiting) app_status.redisq_polling = false;
 		else setTimeout(pollRedisQ.bind(null, db), wait);
 	}
 }
@@ -643,7 +608,7 @@ async function getJsonCached(url) {
 	return value;
 }
 
-const discord_posts_queue = [];
+export const discord_posts_queue = [];
 async function doDiscordPosts() {
 	try {
 		while (discord_posts_queue.length > 0) {
