@@ -1,5 +1,5 @@
 import { ISK_PREFIX, LABEL_PREFIX, LABEL_FILTERS } from "../util/constants.js";
-import { getNames } from "../zkillbot.js";
+import { getNames } from "./information.js";
 import { getFirstString, unixtime } from "../util/helpers.js";
 
 export async function handleInteractions(client) {

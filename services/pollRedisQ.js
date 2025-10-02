@@ -1,6 +1,8 @@
 import { HEADERS } from "../util/constants.js";
 import { app_status } from "../util/shareAppStatus.js";
-import { REDISQ_URL, discord_posts_queue, getSystemDetails } from "../zkillbot.js";
+import { REDISQ_URL } from "../zkillbot.js";
+import { getSystemDetails } from "./information.js";
+import { discord_posts_queue } from "./discord-post.js";
 
 export async function pollRedisQ(db) {
 	let wait = 500; // RedisQ allows 20 queries / 10 seconds

@@ -1,3 +1,4 @@
+import { HEADERS } from "./constants.js";
 
 export function unixtime() {
 	return Math.floor(Date.now() / 1000);
@@ -18,4 +19,14 @@ export function getFirstString(interaction, optionNames, defaultValue = "0") {
 		}
 	}
 	return defaultValue;
+}const json_cache = {};
+export async function getJsonCached(url) {
+	let value = json_cache[url];
+	if (!value) {
+		let res = await fetch(url, HEADERS);
+		value = await res.json();
+		json_cache[url] = value;
+	}
+	return value;
 }
+

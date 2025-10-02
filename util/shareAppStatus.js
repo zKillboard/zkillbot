@@ -1,4 +1,4 @@
-import { discord_posts_queue } from "../zkillbot.js";
+import { discord_posts_queue } from "../services/discord-post.js";
 
 export let app_status = {
 	redisq_count: 0,
