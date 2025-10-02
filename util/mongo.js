@@ -1,6 +1,7 @@
 import { MongoClient } from "mongodb";
+import { SEVEN_DAYS } from "./constants.js";
 
-export async function initMongo(MONGO_URI, MONGO_DB, SEVEN_DAYS) {
+export async function initMongo(MONGO_URI, MONGO_DB) {
 	const mongo = new MongoClient(MONGO_URI);
 	await mongo.connect();
 	const db = mongo.db(MONGO_DB);

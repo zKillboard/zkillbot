@@ -1,10 +1,9 @@
 import { HEADERS } from "../util/constants.js";
 import { app_status } from "../util/shareAppStatus.js";
-import { REDISQ_URL } from "../zkillbot.js";
 import { getSystemDetails } from "./information.js";
 import { discord_posts_queue } from "./discord-post.js";
 
-export async function pollRedisQ(db) {
+export async function pollRedisQ(db, REDISQ_URL) {
 	let wait = 500; // RedisQ allows 20 queries / 10 seconds
 	try {
 		const controller = new AbortController();
@@ -101,6 +100,6 @@ export async function pollRedisQ(db) {
 		wait = 5000;
 	} finally {
 		if (app_status.exiting) app_status.redisq_polling = false;
-		else setTimeout(pollRedisQ.bind(null, db), wait);
+		else setTimeout(pollRedisQ.bind(null, db, REDISQ_URL), wait);
 	}
 }
