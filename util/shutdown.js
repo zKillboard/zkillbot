@@ -25,6 +25,8 @@ async function gracefulShutdown(signal) {
 		console.error("⚠️ Error during shutdown cleanup:", err);
 	}
 
+	// fyi to those reading the code - mongodb handles its own shutdown on process exit
+
 	console.log("✅ Shutdown complete.");
 	process.exit(0);
 }
