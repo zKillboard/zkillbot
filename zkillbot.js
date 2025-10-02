@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
+import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, PermissionFlagsBits, Subscription } from "discord.js";
 import { MongoClient } from "mongodb";
 import NodeCache from "node-cache";
 
@@ -72,27 +72,26 @@ function unixtime() {
 	return Math.floor(Date.now() / 1000);
 }
 
-// --- Mongo connection ---
-const mongo = new MongoClient(MONGO_URI);
-let subsCollection, sentHistory, entities;
-
 async function initMongo() {
+	const mongo = new MongoClient(MONGO_URI);
 	await mongo.connect();
 	const db = mongo.db(MONGO_DB);
 
-	entities = db.collection('entities');
+	const entities = db.collection('entities');
 	await entities.createIndex({ entity_id: 1 });
 	await entities.createIndex({ last_updated: 1 });
 
-	sentHistory = db.collection('subshistory');
+	const sentHistory = db.collection('subshistory');
 	await sentHistory.createIndex({ channelId: 1, killmail_id: 1 }, { unique: true });
 	await sentHistory.createIndex({ createdAt: 1 }, { expireAfterSeconds: SEVEN_DAYS }); // 7 days
 
-	subsCollection = db.collection("subscriptions");
+	const subsCollection = db.collection("subscriptions");
 	await subsCollection.createIndex({ entityIds: 1 });
 	await subsCollection.createIndex({ iskValue: 1 });
 	await subsCollection.createIndex({ labels: 1 });
 	console.log("✅ Connected to MongoDB");
+
+	return { db, entities, sentHistory, subsCollection };
 }
 
 let app_status = { redisq_count: 0, discord_post_count: 0 };
@@ -109,11 +108,11 @@ function shareAppStatus() {
 }
 setTimeout(shareAppStatus, 33333);
 
-async function entityUpdates() {
+async function entityUpdates(db) {
 	try {
 		const oneWeekAgo = unixtime() - SEVEN_DAYS;
 
-		const staleEntities = await entities
+		const staleEntities = await db.entities
 			.find({ last_updated: { $lt: oneWeekAgo } })
 			.limit(500)
 			.toArray();
@@ -123,16 +122,16 @@ async function entityUpdates() {
 		const entityIds = staleEntities.map(e => e.entity_id);
 		const names = await getNames(entityIds);
 		for (const n of names) {
-			entities.updateOne({ id: n.entity_id }, { $set: { name: n.name, last_updated: unixtime() } });
+			db.entities.updateOne({ id: n.entity_id }, { $set: { name: n.name, last_updated: unixtime() } });
 		}
 	} finally {
-		setTimeout(entityUpdates, 1000);
+		setTimeout(entityUpdates.bind(null, db), 1000);
 	}
 }
 
 let names_cache = {};
 let names_cache_clear = Date.now();
-async function getNames(entities, use_cache = true) {
+async function getNames(entityIds, use_cache = true) {
 	// Keep the cache from getting too large
 	if (Date.now() - names_cache_clear > 3600_000) {
 		names_cache = {};
@@ -140,7 +139,7 @@ async function getNames(entities, use_cache = true) {
 	}
 
 	// unique IDs
-	const ids = [...new Set(entities)];
+	const ids = [...new Set(entityIds)];
 
 	// separate cached vs missing
 	const missing = use_cache ? ids.filter(id => !(id in names_cache)) : ids;
@@ -243,15 +242,18 @@ const rest = new REST({ version: "10" }).setToken(DISCORD_BOT_TOKEN);
 
 client.once("clientReady", async () => {
 	console.log(`✅ Logged in as ${client.user.tag}`);
-	await initMongo();
-	await entityUpdates();
-	pollRedisQ();
+	
+	client.db = await initMongo();
+
+	await entityUpdates(client.db);
+	pollRedisQ(client.db);
 });
 
 const ISK_PREFIX = 'isk:', LABEL_PREFIX = 'label:';
 
 // --- interaction handling ---
 client.on("interactionCreate", async (interaction) => {
+	const db = interaction.client.db;
 	try {
         if (interaction.isAutocomplete()) {
             handleAutoComplete(interaction);
@@ -274,7 +276,7 @@ client.on("interactionCreate", async (interaction) => {
 		}
 
 		if (sub === "list") {
-			const doc = await subsCollection.findOne({ guildId, channelId });
+			const doc = await db.subsCollection.findOne({ guildId, channelId });
 			let entityIds = doc?.entityIds || [];
 
 			// 🔑 resolve IDs to names
@@ -329,7 +331,7 @@ client.on("interactionCreate", async (interaction) => {
 			});
 
 			if (canView && canSend && canEmbed && isTextBased && canManageChannel) {
-				await subsCollection.updateOne(
+				await db.subsCollection.updateOne(
 					{ guildId, channelId },
 					{ $set: { checked: true } },
 					{ upsert: true }
@@ -345,7 +347,7 @@ client.on("interactionCreate", async (interaction) => {
 		}
 
 		if (sub === "subscribe") {
-			let doc = await subsCollection.findOne({ channelId: channelId });
+			let doc = await db.subsCollection.findOne({ channelId: channelId });
 			if (!doc || doc.checked != true) {
 				return interaction.reply({
 					content: ` 🛑 Before you subscribe, please run **/zkillbot check** to ensure all permissions are set properly for this channel`,
@@ -370,7 +372,7 @@ client.on("interactionCreate", async (interaction) => {
 					});
 				}
 
-				await subsCollection.updateOne(
+				await db.subsCollection.updateOne(
 					{ guildId, channelId },
 					{ $set: { iskValue: iskValue } },
 					{ upsert: true }
@@ -389,7 +391,7 @@ client.on("interactionCreate", async (interaction) => {
 					});
 				}
 
-				await subsCollection.updateOne(
+				await db.subsCollection.updateOne(
 					{ guildId, channelId },
 					{ $addToSet: { labels: label_filter } },
 					{ upsert: true }
@@ -439,13 +441,13 @@ client.on("interactionCreate", async (interaction) => {
 				}
 				const name = names[entityId];
 
-				await subsCollection.updateOne(
+				await db.subsCollection.updateOne(
 					{ guildId, channelId },
 					{ $addToSet: { entityIds: entityId } },
 					{ upsert: true }
 				);
 
-				await entities.updateOne(
+				await db.entities.updateOne(
 					{ entity_id: entityId, name: name },
 					{ $setOnInsert: { last_updated: unixtime() } },
 					{ upsert: true }
@@ -462,7 +464,7 @@ client.on("interactionCreate", async (interaction) => {
 			let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
 
 			if (valueRaw.startsWith(ISK_PREFIX)) {
-				const res = await subsCollection.updateOne(
+				const res = await db.subsCollection.updateOne(
 					{ guildId, channelId },
 					{ $unset: { iskValue: 1 } }
 				);
@@ -482,7 +484,7 @@ client.on("interactionCreate", async (interaction) => {
 
 			if (valueRaw.startsWith(LABEL_PREFIX)) {
 				const label_filter = valueRaw.substr(LABEL_PREFIX.length);
-				const res = await subsCollection.updateOne(
+				const res = await db.subsCollection.updateOne(
 					{ guildId, channelId },
 					{ $pull: { labels: label_filter } }
 				);
@@ -508,7 +510,7 @@ client.on("interactionCreate", async (interaction) => {
 				});
 			}
 
-			const res = await subsCollection.updateOne(
+			const res = await db.subsCollection.updateOne(
 				{ guildId, channelId },
 				{ $pull: { entityIds: entityId } }
 			);
@@ -527,7 +529,7 @@ client.on("interactionCreate", async (interaction) => {
 		}
 
 		if (sub === "remove_all_subs") {
-			await subsCollection.deleteOne(
+			await db.subsCollection.deleteOne(
 				{ guildId, channelId }
 			);
 
@@ -543,7 +545,7 @@ client.on("interactionCreate", async (interaction) => {
 
 client.login(DISCORD_BOT_TOKEN);
 
-async function pollRedisQ() {
+async function pollRedisQ(db) {
 	let wait = 500; // RedisQ allows 20 queries / 10 seconds
 	try {
 		const controller = new AbortController();
@@ -569,13 +571,13 @@ async function pollRedisQ() {
 
 			// Victims
 			{
-				const matchingSubs = await subsCollection
+				const matchingSubs = await db.subsCollection
 					.find({ entityIds: { $in: victimEntities } })
 					.toArray();
 				for (const match of matchingSubs) {
 					let colorCode = 15548997; // red
 					const channelId = match.channelId;
-					discord_posts_queue.push({ channelId, killmail, zkb, colorCode });
+					discord_posts_queue.push({ db, channelId, killmail, zkb, colorCode });
 				}
 			}
 
@@ -595,37 +597,37 @@ async function pollRedisQ() {
 
 			// Attackers
 			{
-				const matchingSubs = await subsCollection
+				const matchingSubs = await db.subsCollection
 					.find({ entityIds: { $in: attackerEntities } })
 					.toArray();
 				for (const match of matchingSubs) {
 					let colorCode = 5763719; // green
 					const channelId = match.channelId;
-					discord_posts_queue.push({ channelId, killmail, zkb, colorCode });
+					discord_posts_queue.push({ db, channelId, killmail, zkb, colorCode });
 				}
 			}
 
 			// ISK
 			{
-				const matchingSubs = await subsCollection
+				const matchingSubs = await db.subsCollection
 					.find({ iskValue: { $lte: zkb.totalValue } })
 					.toArray();
 				for (const match of matchingSubs) {
 					let colorCode = 12092939; // gold
 					const channelId = match.channelId;
-					discord_posts_queue.push({ channelId, killmail, zkb, colorCode });
+					discord_posts_queue.push({ db, channelId, killmail, zkb, colorCode });
 				}
 			}
 
 			// Labels
 			{
-				const matchingSubs = await subsCollection
+				const matchingSubs = await db.subsCollection
 					.find({ labels: { $in: zkb.labels } })
 					.toArray();
 				for (const match of matchingSubs) {
 					let colorCode = 5763719; // green
 					const channelId = match.channelId;
-					discord_posts_queue.push({ channelId, killmail, zkb, colorCode });
+					discord_posts_queue.push({ db, channelId, killmail, zkb, colorCode });
 				}
 			}
 
@@ -640,7 +642,7 @@ async function pollRedisQ() {
 		wait = 5000;
 	} finally {
 		if (exiting) redisq_polling = false;
-		else setTimeout(pollRedisQ, wait);
+		else setTimeout(pollRedisQ.bind(null, db), wait);
 	}
 }
 
@@ -667,11 +669,11 @@ const discord_posts_queue = [];
 async function doDiscordPosts() {
 	try {
 		while (discord_posts_queue.length > 0) {
-			const { channelId, killmail, zkb, colorCode } = discord_posts_queue.shift();
+			const { db,  channelId, killmail, zkb, colorCode } = discord_posts_queue.shift();
 
 			// ensure we haven't posted this killmail to this channel yet
 			try {
-				await sentHistory.insertOne({ channelId: channelId, killmail_id: killmail.killmail_id, createdAt: new Date() });
+				await db.sentHistory.insertOne({ channelId: channelId, killmail_id: killmail.killmail_id, createdAt: new Date() });
 			} catch (err) {
 				if (err.code === 11000) {
 					// ⚠️ Duplicate key → already sent to this channel
@@ -796,7 +798,7 @@ async function postToDiscord(channelId, embed) {
 			}
 		}
 		if (remove) {
-			await subsCollection.deleteMany({ channelId: channelId });
+			await db.subsCollection.deleteMany({ channelId: channelId });
 			console.error(`Removing subscriptions for ${channelId}`);
 		}
 	} catch (e) {
@@ -805,12 +807,13 @@ async function postToDiscord(channelId, embed) {
 }
 
 function handleAutoComplete(interaction) {
+	const db = interaction.client.db;
     try {
         const sub = interaction.options.getSubcommand();
         if (sub === "unsubscribe") {
             const value = interaction.options.getString("filter");
             const { guildId, channelId } = interaction;
-            subsCollection.findOne({ guildId, channelId }).then(doc => {
+            db.subsCollection.findOne({ guildId, channelId }).then(doc => {
                 let entityIds = doc?.entityIds || [];
                 getNames(entityIds).then(names => {
                     const options = [];
