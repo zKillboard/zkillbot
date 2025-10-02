@@ -151,10 +151,6 @@ async function getNames(entities, use_cache = true) {
 		});
 		const json = await res.json();
 
-        if (!Array.isArray(json)) {
-            console.error("ESI /universe/names did not return an array:", json);
-            return {};
-        }
 		// add fetched names into cache
 		for (const e of json) {
 			names_cache[e.id] = e.name;
