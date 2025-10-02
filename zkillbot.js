@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, PermissionFlagsBits, Subscription } from "discord.js";
-import { MongoClient } from "mongodb";
 import NodeCache from "node-cache";
 
 import dotenv from "dotenv";
@@ -67,31 +66,9 @@ const client = new Client({
 	intents: [GatewayIntentBits.Guilds],
 });
 
-const SEVEN_DAYS = 604800;
+export const SEVEN_DAYS = 604800;
 function unixtime() {
 	return Math.floor(Date.now() / 1000);
-}
-
-async function initMongo() {
-	const mongo = new MongoClient(MONGO_URI);
-	await mongo.connect();
-	const db = mongo.db(MONGO_DB);
-
-	const entities = db.collection('entities');
-	await entities.createIndex({ entity_id: 1 });
-	await entities.createIndex({ last_updated: 1 });
-
-	const sentHistory = db.collection('subshistory');
-	await sentHistory.createIndex({ channelId: 1, killmail_id: 1 }, { unique: true });
-	await sentHistory.createIndex({ createdAt: 1 }, { expireAfterSeconds: SEVEN_DAYS }); // 7 days
-
-	const subsCollection = db.collection("subscriptions");
-	await subsCollection.createIndex({ entityIds: 1 });
-	await subsCollection.createIndex({ iskValue: 1 });
-	await subsCollection.createIndex({ labels: 1 });
-	console.log("✅ Connected to MongoDB");
-
-	return { db, entities, sentHistory, subsCollection };
 }
 
 let app_status = { redisq_count: 0, discord_post_count: 0 };
@@ -242,8 +219,9 @@ const rest = new REST({ version: "10" }).setToken(DISCORD_BOT_TOKEN);
 
 client.once("clientReady", async () => {
 	console.log(`✅ Logged in as ${client.user.tag}`);
-	
-	client.db = await initMongo();
+
+	const { initMongo } = await import("./util/mongo.js"); // await here!
+	client.db = await initMongo(MONGO_URI, MONGO_DB, SEVEN_DAYS);
 
 	await entityUpdates(client.db);
 	pollRedisQ(client.db);
