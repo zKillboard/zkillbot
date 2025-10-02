@@ -9,6 +9,9 @@ dotenv.config({ quiet: true });
 import { pollRedisQ } from "./services/pollRedisQ.js";
 import { entityUpdates } from "./services/information.js";
 
+import "./util/shutdown.js";
+
+
 const { DISCORD_BOT_TOKEN, CLIENT_ID, MONGO_URI, MONGO_DB, REDISQ_URL } = process.env;
 
 if (!DISCORD_BOT_TOKEN || !CLIENT_ID || !REDISQ_URL || !MONGO_URI || !MONGO_DB) {
@@ -19,7 +22,6 @@ if (!DISCORD_BOT_TOKEN || !CLIENT_ID || !REDISQ_URL || !MONGO_URI || !MONGO_DB) 
 export const client = new Client({
 	intents: [GatewayIntentBits.Guilds], 
 });
-
 
 async function init() {
 	try {
