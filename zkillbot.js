@@ -764,8 +764,12 @@ async function postToDiscord(channelId, killmail, zkb, colorCode) {
 				remove = true;
 			}
 		} catch (err) {
-			// Something went wrong... keep the error in the logs but don't remove subscriptions just yet
-			console.error(`Failed to send embed to ${channelId}:`, err);
+			if (err.code == 50001) {
+				remove = true;
+			} else {
+				// Something went wrong... keep the error in the logs but don't remove subscriptions just yet
+				console.error(`Failed to send embed to ${channelId}:`, err);
+			}
 		}
 		if (remove) {
 			await subsCollection.deleteMany({ channelId: channelId });
