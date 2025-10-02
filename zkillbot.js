@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 import { Client, GatewayIntentBits, REST, Routes, SlashCommandBuilder, PermissionFlagsBits } from "discord.js";
 import { MongoClient } from "mongodb";
+import NodeCache from "node-cache";
+
 import dotenv from "dotenv";
 
 dotenv.config({ quiet: true });
@@ -658,29 +660,40 @@ async function getJsonCached(url) {
 }
 
 const discord_posts_queue = [];
-function doDiscordPosts() {
-	if (discord_posts_queue.length > 0) {
-		const { channelId, killmail, zkb, colorCode } = discord_posts_queue.shift();
-		postToDiscord(channelId, killmail, zkb, colorCode);
+async function doDiscordPosts() {
+	try {
+		while (discord_posts_queue.length > 0) {
+			const { channelId, killmail, zkb, colorCode } = discord_posts_queue.shift();
+
+			// ensure we haven't posted this killmail to this channel yet
+			try {
+				await sentHistory.insertOne({ channelId: channelId, killmail_id: killmail.killmail_id, createdAt: new Date() });
+			} catch (err) {
+				if (err.code === 11000) {
+					// ⚠️ Duplicate key → already sent to this channel
+				} else {
+					console.error("Insert/send failed:", err);
+				}
+				continue; // loop without waiting
+			}
+
+			let embed = await getKillmailEmbeds(killmail, zkb, colorCode);
+			postToDiscord(channelId, embed); // lack of await is on purpose
+			break; // break loops, pause for the interval and then start again
+		}
+	} catch (e) {
+		console.error(e);
+	} finally {
+		setTimeout(doDiscordPosts, 100);
 	}
-	setTimeout(doDiscordPosts, 100);
 }
 doDiscordPosts();
 
-async function postToDiscord(channelId, killmail, zkb, colorCode) {
-	try {
-		// ensure we haven't posted this killmail to this channel yet
-		try {
-			await sentHistory.insertOne({ channelId: channelId, killmail_id: killmail.killmail_id, createdAt: new Date() });
-		} catch (err) {
-			if (err.code === 11000) {
-				// ⚠️ Duplicate key → already sent to this channel
-			} else {
-				console.error("Insert/send failed:", err);
-			}
-			return;
-		}
+const embeds_cache = new NodeCache({ stdTTL: 30 });
 
+async function getKillmailEmbeds(killmail, zkb, colorCode) {
+	let embed = embeds_cache.get(killmail.killmail_id);
+	if (!embed) {
 		const url = `https://zkillboard.com/kill/${killmail.killmail_id}/`;
 
 		let final_blow = killmail.attackers[0]; // default to first
@@ -721,7 +734,7 @@ async function postToDiscord(channelId, killmail, zkb, colorCode) {
 
 		const description = `${victim.character_name} (${victim_employer}) lost their ${victim.ship_type_name} in ${system}. Final Blow by ${fb.character_name} (${fb_employer})${solo} in their ${fb.ship_type_name}${others}. Total Value: ${zkb.totalValue.toLocaleString(LOCALE)} ISK`;
 
-		const embed = {
+		embed = {
 			title: victim.character_name + (victim.character_name.endsWith('s') ? "' " : "'s ") + victim.ship_type_name,
 			description: description,
 			color: colorCode,
@@ -740,6 +753,13 @@ async function postToDiscord(channelId, killmail, zkb, colorCode) {
 			footer: { text: fb.character_name, icon_url: fb_img }
 		};
 
+		embeds_cache.set(killmail.killmail_id, embed);
+	}
+	return embed;
+}
+
+async function postToDiscord(channelId, embed) {
+	try {
 		let remove = false;
 		try {
 			const channel = await client.channels.fetch(channelId);
