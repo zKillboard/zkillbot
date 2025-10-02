@@ -2,6 +2,8 @@
 import { Client, GatewayIntentBits, REST, Routes, Subscription } from "discord.js";
 import { SLASH_COMMANDS } from "./services/discord-commands.js";
 import { handleInteractions } from "./services/discord-interactions.js";
+import { doDiscordPosts } from "./services/discord-post.js";
+import { sendWebhook } from "./util/webhook.js";
 
 import dotenv from "dotenv";
 dotenv.config({ quiet: true });
@@ -13,6 +15,7 @@ import "./util/shutdown.js";
 
 
 const { DISCORD_BOT_TOKEN, CLIENT_ID, MONGO_URI, MONGO_DB, REDISQ_URL } = process.env;
+export const { ZKILLBOT_CHANNEL_WEBHOOK } = process.env;
 
 if (!DISCORD_BOT_TOKEN || !CLIENT_ID || !REDISQ_URL || !MONGO_URI || !MONGO_DB) {
 	console.error("❌ Missing required env vars");
@@ -27,6 +30,7 @@ async function init() {
 	try {
 		const rest = new REST({ version: "10" }).setToken(DISCORD_BOT_TOKEN);
 		console.log("🔄 Registering slash commands...");
+		doDiscordPosts(client.db);
 
 		if (process.env.NODE_ENV === "development") {
 			await rest.put(
@@ -40,6 +44,7 @@ async function init() {
 				{ body: SLASH_COMMANDS }
 			);
 			console.log("✅ Slash commands registered.");
+			sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, "*zKillBot activating - acquiring targets*");
 		}
 
 		client.once("clientReady", async () => {
@@ -50,6 +55,7 @@ async function init() {
 
 			entityUpdates(client.db);
 			pollRedisQ(client.db, REDISQ_URL);
+			
 		});
 
 		client.login(DISCORD_BOT_TOKEN);

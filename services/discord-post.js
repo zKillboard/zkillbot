@@ -10,7 +10,7 @@ import { getSystemNameAndRegion } from "./information.js";
 
 
 export const discord_posts_queue = [];
-async function doDiscordPosts() {
+export async function doDiscordPosts(db) {
 	try {
 		while (discord_posts_queue.length > 0) {
 			const { db, channelId, killmail, zkb, colorCode } = discord_posts_queue.shift();
@@ -34,10 +34,9 @@ async function doDiscordPosts() {
 	} catch (e) {
 		console.error(e);
 	} finally {
-		setTimeout(doDiscordPosts, 100);
+		setTimeout(doDiscordPosts.bind(null, db), 100);
 	}
 }
-doDiscordPosts();
 const embeds_cache = new NodeCache({ stdTTL: 30 });
 
 async function getKillmailEmbeds(killmail, zkb, colorCode) {
