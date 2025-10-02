@@ -23,7 +23,7 @@ export const client = new Client({
 });
 
 
-async function discordConnect() {
+async function init() {
 	try {
 		const rest = new REST({ version: "10" }).setToken(DISCORD_BOT_TOKEN);
 		console.log("🔄 Registering slash commands...");
@@ -59,4 +59,4 @@ async function discordConnect() {
 		console.error("Failed to register commands:", err);
 	}
 }
-discordConnect();
+init();
