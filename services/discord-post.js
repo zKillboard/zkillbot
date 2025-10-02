@@ -133,7 +133,7 @@ async function postToDiscord(channelId, embed) {
 				remove = true;
 			}
 		} catch (err) {
-			if (err.code == 50001) {
+			if (err.code == 50001 || err.code == 10003) {
 				remove = true;
 			} else {
 				// Something went wrong... keep the error in the logs but don't remove subscriptions just yet
