@@ -1,3 +1,5 @@
+export const LOCALE = 'en';
+
 export const HEADERS = {
 	headers: {
 		"User-Agent": "zKillBot",
@@ -16,4 +18,4 @@ export const LABEL_FILTERS = [
 ];
 
 export const SEVEN_DAYS = 604800;
-
+export const ISK_PREFIX = 'isk:', LABEL_PREFIX = 'label:';
