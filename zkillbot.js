@@ -335,7 +335,7 @@ client.on("interactionCreate", async (interaction) => {
 
 		if (!canManageChannel) {
 			return interaction.reply({
-				content: "❌ ACCESS DENIED - insufficent perimssions ❌",
+				content: "❌ ACCESS DENIED - insufficient permissions ❌",
 				flags: 64 // ephemeral
 			});
 		}
@@ -419,7 +419,7 @@ client.on("interactionCreate", async (interaction) => {
 
 					if (suggestions.length == 0) {
 						return interaction.reply({
-							content: ` ❌ Unable to subscribe... **${valueRaw}** did not come up with any search reults`,
+							content: ` ❌ Unable to subscribe... **${valueRaw}** did not come up with any search results`,
 							flags: 64
 						});
 					}
@@ -427,7 +427,7 @@ client.on("interactionCreate", async (interaction) => {
 				}
 
 				let names = await getNames([entityId]);
-				if (names.length == 0) {
+				if (Object.values(names).length === 0) {
 					return interaction.reply({
 						content: ` ❌ Unable to subscribe... **${valueRaw}** is not a valid entity id`,
 						flags: 64
@@ -522,7 +522,7 @@ client.on("interactionCreate", async (interaction) => {
 			}
 		}
 
-		if (sub == "remove_all_subs") {
+		if (sub === "remove_all_subs") {
 			await subsCollection.deleteOne(
 				{ guildId, channelId }
 			);
@@ -705,7 +705,7 @@ async function getKillmailEmbeds(killmail, zkb, colorCode) {
 		}
 		const [names, system] = await Promise.all([
 			getNames([...getIDs(killmail.victim), ...getIDs(final_blow)]),
-			getSystenNameAndRegion(killmail.solar_system_id)
+			getSystemNameAndRegion(killmail.solar_system_id)
 		]);
 
 		const victim = fillNames(names, killmail.victim);
@@ -811,7 +811,7 @@ function getIDs(obj) {
 		.map(([, value]) => value);
 }
 
-async function getSystenNameAndRegion(solar_system_id) {
+async function getSystemNameAndRegion(solar_system_id) {
 	let system = await getJsonCached(`https://esi.evetech.net/universe/systems/${solar_system_id}`);
 	let constellation = await getJsonCached(`https://esi.evetech.net/universe/constellations/${system.constellation_id}`, HEADERS);
 	let region = await getJsonCached(`https://esi.evetech.net/universe/regions/${constellation.region_id}`, HEADERS);
