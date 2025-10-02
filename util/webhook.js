@@ -1,5 +1,5 @@
 export async function sendWebhook(webhookURL, payload) {
-	if (process.env.NODE_ENV !== "development") {
+	if (webhookURL && process.env.NODE_ENV !== "development") {
 		return await fetch(`${webhookURL}?wait=true`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },

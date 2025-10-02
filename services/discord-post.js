@@ -140,7 +140,7 @@ async function postToDiscord(channelId, embed) {
 			}
 		}
 		if (remove) {
-			await db.subsCollection.deleteMany({ channelId: channelId });
+			await client.db.subsCollection.deleteMany({ channelId: channelId });
 			console.error(`Removing subscriptions for ${channelId}`);
 		}
 	} catch (e) {
