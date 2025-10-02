@@ -16,12 +16,13 @@ if (!DISCORD_BOT_TOKEN || !CLIENT_ID || !REDISQ_URL || !MONGO_URI || !MONGO_DB) 
 	process.exit(1);
 }
 
+export const client = new Client({
+	intents: [GatewayIntentBits.Guilds], 
+});
+
+
 async function init() {
 	try {
-		const client = new Client({
-			intents: [GatewayIntentBits.Guilds],
-		});
-
 		const rest = new REST({ version: "10" }).setToken(DISCORD_BOT_TOKEN);
 		console.log("🔄 Registering slash commands...");
 
