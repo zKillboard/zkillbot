@@ -196,7 +196,7 @@ const commands = [
 				.setName("unsubscribe")
 				.setDescription("Unsubscribe by name, ID, or prefixed with isk: or label:")
 				.addStringOption(opt =>
-					opt.setName("filter").setDescription("Unsubscribe by name, ID, or prefixed with isk: or label:").setRequired(true)
+					opt.setName("filter").setDescription("Unsubscribe by name, ID, or prefixed with isk: or label:").setRequired(true).setAutocomplete(true)
 				)
 		)
 		.addSubcommand(sub =>
@@ -253,6 +253,10 @@ const ISK_PREFIX = 'isk:', LABEL_PREFIX = 'label:';
 // --- interaction handling ---
 client.on("interactionCreate", async (interaction) => {
 	try {
+        if (interaction.isAutocomplete()) {
+            handleAutoComplete(interaction);
+            return;
+        }
 		if (!interaction.isChatInputCommand()) return;
 		if (interaction.commandName !== "zkillbot") return;
 
@@ -798,6 +802,43 @@ async function postToDiscord(channelId, embed) {
 	} catch (e) {
 		console.log(e);
 	}
+}
+
+function handleAutoComplete(interaction) {
+    try {
+        const sub = interaction.options.getSubcommand();
+        if (sub === "unsubscribe") {
+            const value = interaction.options.getString("filter");
+            const { guildId, channelId } = interaction;
+            subsCollection.findOne({ guildId, channelId }).then(doc => {
+                let entityIds = doc?.entityIds || [];
+                getNames(entityIds).then(names => {
+                    const options = [];
+                    for (const id in names) {
+                        options.push({name: `${id}:${names[id]}`, value: `${id}`});
+                    }
+                    const labels = doc?.labels || [];
+                    for (let label of labels) {
+                        options.push({name: `label:${label}`, value: `label:${label}`});
+                    }
+                    if (doc?.iskValue) {
+                        options.push({name: `isk:${doc.iskValue}`, value: `isk:${doc.iskValue}`});
+                    }
+                    if (value) {
+                        interaction.respond(options.filter(opt => opt.name.toLowerCase().includes(value.toLowerCase())).slice(0, 25));
+                    } else {
+                        interaction.respond(options.slice(0, 25));
+                    }
+                }).catch(err => {
+                    console.error("AutoComplete error while trying to fetch entities:", err);
+                })
+            }).catch(err => {
+                console.error("AutoComplete error while trying to fetch subscriptions:", err);
+            })
+        }
+    } catch (err) {
+        console.error("AutoComplete error:", err);
+    }
 }
 
 
