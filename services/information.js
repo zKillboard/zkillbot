@@ -32,9 +32,17 @@ export async function entityUpdates(db) {
 	}
 }
 
+/**
+ * Retrieves the names for a list of entity IDs, using a cache and database lookup as needed.
+ *
+ * @param {Object} db - The database connection object, expected to have an `entities` collection.
+ * @param {Array<string|number>} entityIds - Array of entity IDs to retrieve names for.
+ * @param {boolean} [use_cache=true] - Whether to use the names cache for lookups.
+ * @returns {Promise<Object>} - A promise that resolves to an object mapping entity IDs to their names.
+ */
 export async function getNames(db, entityIds, use_cache = true) {
 	// unique IDs
-	const ids = [...new Set(entityIds)];
+	const ids = Array.from(new Set(entityIds));
 
 	// separate cached vs missing
 	const missing = use_cache ? ids.filter(id => !(id in names_cache)) : ids;

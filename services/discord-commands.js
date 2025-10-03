@@ -49,5 +49,10 @@ export const SLASH_COMMANDS = [
 				.setName("remove_all_subs")
 				.setDescription("Clears all subscriptions in this channel")
 		)
+		.addSubcommand(sub =>
+			sub
+				.setName("about")
+				.setDescription("About zKillBot, the Discord bot behind zKillboard. Includes stats and a link to the documentation.")
+		)
 		.toJSON()
 ];
