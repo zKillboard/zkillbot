@@ -10,13 +10,16 @@ export const SLASH_COMMANDS = [
 				.setName("invite")
 				.setDescription("Get the invite link for zKillBot")
 		)
-
 		.addSubcommand(sub =>
 			sub
 				.setName("subscribe")
 				.setDescription("Subscribe by name, ID, or prefixed with isk: or label:")
 				.addStringOption(opt =>
-					opt.setName("filter").setDescription("Subscribe by name, ID, or prefixed with isk: or label:").setRequired(true)
+					opt
+						.setName("filter")
+						.setDescription("Subscribe by name, ID, or prefixed with isk: or label:")
+						.setRequired(true)
+						.setAutocomplete(true)
 				)
 		)
 		.addSubcommand(sub =>
@@ -24,7 +27,11 @@ export const SLASH_COMMANDS = [
 				.setName("unsubscribe")
 				.setDescription("Unsubscribe by name, ID, or prefixed with isk: or label:")
 				.addStringOption(opt =>
-					opt.setName("filter").setDescription("Unsubscribe by name, ID, or prefixed with isk: or label:").setRequired(true).setAutocomplete(true)
+					opt
+						.setName("filter")
+						.setDescription("Unsubscribe by name, ID, or prefixed with isk: or label:")
+						.setRequired(true)
+						.setAutocomplete(true)
 				)
 		)
 		.addSubcommand(sub =>
