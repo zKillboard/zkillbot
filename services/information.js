@@ -17,18 +17,18 @@ export async function entityUpdates(db) {
 
 		const staleEntities = await db.entities
 			.find({ last_updated: { $lt: oneWeekAgo } })
-			.limit(500)
+			.limit(1000)
 			.toArray();
 
 		if (staleEntities.length == 0) return;
 
 		const entityIds = staleEntities.map(e => e.entity_id);
-		const names = await getNames(db, entityIds, false);
-		for (const n of names) {
-			db.entities.updateOne({ id: n.entity_id }, { $set: { name: n.name, last_updated: unixtime() } });
-		}
+
+		// Sending false will force the names to be updated in the database
+		// thus completing our task of updating stale entities
+		await getNames(db, entityIds, false);
 	} finally {
-		setTimeout(entityUpdates.bind(null, db), 1000);
+		setTimeout(entityUpdates.bind(null, db), 111111); // run rougyhly every 111 seconds
 	}
 }
 
@@ -38,8 +38,9 @@ export async function getNames(db, entityIds, use_cache = true) {
 
 	// separate cached vs missing
 	const missing = use_cache ? ids.filter(id => !(id in names_cache)) : ids;
-	const needs_lookup = [];
-	if (missing.length > 0) {
+	const needs_lookup = use_cache ? [] : missing;
+
+	if (use_cache && missing.length > 0) {
 		const from_db = await db.entities.find({ entity_id: { $in: missing } }).toArray();
 		for (const e of from_db) {
 			names_cache.set(e.entity_id, e.name);
