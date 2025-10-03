@@ -49,5 +49,71 @@ export const SLASH_COMMANDS = [
 				.setName("remove_all_subs")
 				.setDescription("Clears all subscriptions in this channel")
 		)
+        .addSubcommandGroup(sub =>
+            sub
+                .setName("subgroup")
+                .setDescription('Manage subscription groups')
+                .addSubcommand(sub =>
+                    sub
+                        .setName('create')
+                        .setDescription('Create a new subscription group')
+                        .addStringOption(opt =>
+                        opt
+                            .setName("group_name")
+                            .setDescription("Name of the subscription group")
+                            .setRequired(true)
+                        )
+                )
+                .addSubcommand(sub =>
+                    sub
+                        .setName('delete')
+                        .setDescription('Delete a subscription group')
+                        .addStringOption(opt =>
+                            opt
+                                .setName("group_name")
+                                .setDescription("Name of the subscription group")
+                                .setAutocomplete(true)
+                                .setRequired(true)
+                        )
+                )
+                .addSubcommand(sub =>
+                    sub
+                        .setName('add')
+                        .setDescription('Add by name, ID, or prefixed with isk: or label: to a group')
+                        .addStringOption(opt =>
+                            opt
+                                .setName("group_name")
+                                .setDescription("Name of the subscription group")
+                                .setAutocomplete(true)
+                                .setRequired(true)
+                        )
+                        .addStringOption(opt =>
+                            opt
+                                .setName("filter")
+                                .setDescription("Subscribe by name, ID, or prefixed with isk: or label:")
+                                .setRequired(true)
+                                .setAutocomplete(true)
+                        )
+                )
+                .addSubcommand(sub =>
+                    sub
+                        .setName('remove')
+                        .setDescription('remove by name, ID, or prefixed with isk: or label: to a group')
+                        .addStringOption(opt =>
+                            opt
+                                .setName("group_name")
+                                .setDescription("Name of the subscription group")
+                                .setAutocomplete(true)
+                                .setRequired(true)
+                        )
+                        .addStringOption(opt =>
+                            opt
+                                .setName("filter")
+                                .setDescription("Unsubscribe by name, ID, or prefixed with isk: or label:")
+                                .setRequired(true)
+                                .setAutocomplete(true)
+                        )
+                )
+        )
 		.toJSON()
 ];
