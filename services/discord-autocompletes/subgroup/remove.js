@@ -19,11 +19,13 @@ export async function autocomplete(db, interaction) {
 		const options = [];
 
 		for (const id in names) {
+            if (id === "0") continue;
 			options.push({ name: `${id}:${names[id]}`, value: `${id}` });
 		}
 
 		const labels = doc?.labels || [];
 		for (let label of labels) {
+            if (label === "all") continue;
 			options.push({ name: `label:${label}`, value: `label:${label}` });
 		}
 

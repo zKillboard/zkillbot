@@ -12,12 +12,14 @@ export async function interaction(db, interaction) {
         return `🛑 Subscription group **${valueRaw}** does not exists`;
     }
 
+    const subgroupObj = doc.subgroups[subGroup];
+
     let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
 
     if (valueRaw.startsWith(ISK_PREFIX)) {
         const res = await db.subsCollection.updateOne(
             { guildId, channelId },
-            { $unset: { [`subgroups.${subGroup}.iskValue`]: 1 } }
+            { $set: { [`subgroups.${subGroup}.iskValue`]: 0 } }
         );
 
         if (res.modifiedCount > 0) {
@@ -29,10 +31,19 @@ export async function interaction(db, interaction) {
 
     if (valueRaw.startsWith(LABEL_PREFIX)) {
         const label_filter = valueRaw.substr(LABEL_PREFIX.length);
-        const res = await db.subsCollection.updateOne(
-            { guildId, channelId },
-            { $pull: { [`subgroups.${subGroup}.labels`]: label_filter } }
-        );
+        let res;
+        if (subgroupObj.labels.length === 1 && subgroupObj.labels.includes(label_filter)) {
+            res = await db.subsCollection.updateOne(
+                { guildId, channelId },
+                { $set: { [`subgroups.${subGroup}.labels`]: ["all"] } }
+            );
+        } else {
+            res = await db.subsCollection.updateOne(
+                { guildId, channelId },
+                { $pull: { [`subgroups.${subGroup}.labels`]: label_filter } }
+            );
+        }
+
 
         if (res.modifiedCount > 0) {
             return `❌ Unsubscribed the subscription group ${subGroup} from label **${label_filter}**`;
@@ -45,11 +56,18 @@ export async function interaction(db, interaction) {
     if (Number.isNaN(entityId)) {
         return ` ❌ Unable to unsubscribe... **${valueRaw}** is not a number`;
     }
-
-    const res = await db.subsCollection.updateOne(
-        { guildId, channelId },
-        { $pull: { [`subgroups.${subGroup}.entityIds`]: entityId } }
-    );
+    let res;
+    if (subgroupObj.entityIds.length === 1 && subgroupObj.entityIds.includes(entityId)) {
+        res = await db.subsCollection.updateOne(
+            { guildId, channelId },
+            { $set: { [`subgroups.${subGroup}.entityIds`]: [0] } }
+        );
+    } else {
+        res = await db.subsCollection.updateOne(
+            { guildId, channelId },
+            { $pull: { [`subgroups.${subGroup}.entityIds`]: entityId } }
+        );
+    }
 
     if (res.modifiedCount > 0) {
         return `❌ Unsubscribed the subscription group ${subGroup} from **${entityId}**`;

@@ -14,6 +14,8 @@ export async function interaction(db, interaction) {
         return `🛑 Subscription group **${valueRaw}** does not exists`;
     }
 
+    const subgroupObj = doc.subgroups[subGroup];
+
     let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]).toLowerCase();
 
     if (valueRaw.startsWith(ISK_PREFIX)) {
@@ -38,11 +40,20 @@ export async function interaction(db, interaction) {
             return ` ❌ Unable to subscribe to label **${label_filter}**, it is not one of the following:\n` + LABEL_FILTERS.join(', ');
         }
 
-        await db.subsCollection.updateOne(
-            { guildId, channelId },
-            { $addToSet: { [`subgroups.${subGroup}.labels`]: label_filter } },
-            { upsert: true }
-        );
+        // if no label filter is set yet, we set the new one as the only filter
+        if (subgroupObj.labels[0] === "all") {
+            await db.subsCollection.updateOne(
+                { guildId, channelId },
+                { $set: { [`subgroups.${subGroup}.labels`]: [label_filter] } },
+                { upsert: true }
+            );
+        } else {
+            await db.subsCollection.updateOne(
+                { guildId, channelId },
+                { $addToSet: { [`subgroups.${subGroup}.labels`]: label_filter } },
+                { upsert: true }
+            );
+        }
 
         return `📡 Subscribed the subscription group ${subGroup} to killmails having label **${label_filter}**`;
     } else {
@@ -76,11 +87,20 @@ export async function interaction(db, interaction) {
         }
         const name = names[entityId];
 
-        await db.subsCollection.updateOne(
-            { guildId, channelId },
-            { $addToSet: { [`subgroups.${subGroup}.entityIds`]: entityId } },
-            { upsert: true }
-        );
+        // if no entity is set yet, we set the new one as the only entity
+        if (subgroupObj.entityIds[0] === 0) {
+            await db.subsCollection.updateOne(
+                { guildId, channelId },
+                { $set: { [`subgroups.${subGroup}.entityIds`]: [entityId] } },
+                { upsert: true }
+            );
+        } else {
+            await db.subsCollection.updateOne(
+                { guildId, channelId },
+                { $addToSet: { [`subgroups.${subGroup}.entityIds`]: entityId } },
+                { upsert: true }
+            );
+        }
 
         await db.entities.updateOne(
             { entity_id: entityId, name: name },

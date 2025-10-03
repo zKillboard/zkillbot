@@ -1,4 +1,4 @@
-import { SlashCommandBuilder  } from "discord.js";
+import {SlashCommandBuilder} from "discord.js";
 
 // --- slash command definitions ---
 export const SLASH_COMMANDS = [
@@ -58,10 +58,10 @@ export const SLASH_COMMANDS = [
                         .setName('create')
                         .setDescription('Create a new subscription group')
                         .addStringOption(opt =>
-                        opt
-                            .setName("group_name")
-                            .setDescription("Name of the subscription group")
-                            .setRequired(true)
+                            opt
+                                .setName("group_name")
+                                .setDescription("Name of the subscription group")
+                                .setRequired(true)
                         )
                 )
                 .addSubcommand(sub =>
@@ -114,6 +114,42 @@ export const SLASH_COMMANDS = [
                                 .setAutocomplete(true)
                         )
                 )
+                .addSubcommand(sub =>
+                    sub
+                        .setName('show')
+                        .setDescription('Show details of a subscription group')
+                        .addStringOption(opt =>
+                            opt
+                                .setName("group_name")
+                                .setDescription("Name of the subscription group")
+                                .setAutocomplete(true)
+                                .setRequired(true)
+                        )
+                )
+                .addSubcommand(sub =>
+                    sub
+                        .setName('enable')
+                        .setDescription('Enables a subscription group')
+                        .addStringOption(opt =>
+                            opt
+                                .setName("group_name")
+                                .setDescription("Name of the subscription group")
+                                .setAutocomplete(true)
+                                .setRequired(true)
+                        )
+                )
+                .addSubcommand(sub =>
+                    sub
+                        .setName('disable')
+                        .setDescription('Disables a subscription group')
+                        .addStringOption(opt =>
+                            opt
+                                .setName("group_name")
+                                .setDescription("Name of the subscription group")
+                                .setAutocomplete(true)
+                                .setRequired(true)
+                        )
+                )
         )
-		.toJSON()
+        .toJSON()
 ];

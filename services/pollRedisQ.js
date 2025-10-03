@@ -92,6 +92,34 @@ export async function pollRedisQ(db, REDISQ_URL) {
             // Subgroups
             {
                 //TODO: Implement
+                const matchingSubs = await db.subsCollection.aggregate([
+                    {
+                        $project: {
+                            channelId: 1,
+                            guildId: 1,
+                            subgroups: {
+                                $objectToArray: "$subgroups",
+                            }
+                        }
+                    },
+                    {
+                        $match: {
+                            subgroups: {
+                                $elemMatch: {
+                                    "v.enabled": {$eq: true},
+                                    "v.entityIds": {$in: attackerEntities.concat(0)},
+                                    "v.iskValue": {$lte: zkb.totalValue},
+                                    "v.labels": {$in: zkb.labels.concat('all')}
+                                }
+                            }
+                        }
+                    }
+                ]).toArray();
+                for (const match of matchingSubs) {
+                    let colorCode = 3447003; // blue
+                    const channelId = match.channelId;
+                    discord_posts_queue.push({ db, channelId, killmail, zkb, colorCode });
+                }
             }
 
 			app_status.redisq_count++;

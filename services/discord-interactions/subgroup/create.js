@@ -12,6 +12,6 @@ export async function interaction(db, interaction) {
     if (doc.subgroups && Object.keys(doc.subgroups).includes(valueRaw)) {
         return `🛑 Subscription group **${valueRaw}** already exists`;
     }
-    await db.subsCollection.updateOne({ channelId: channelId }, { $set: { [`subgroups.${valueRaw}`]: {} } });
+    await db.subsCollection.updateOne({ channelId: channelId }, { $set: { [`subgroups.${valueRaw}`]: {entityIds: [0], labels: ['all'], iskValue: 0, enabled: false} } });
     return `✅ Successfully added subscription group **${valueRaw}**`
 }

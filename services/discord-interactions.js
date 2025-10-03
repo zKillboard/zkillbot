@@ -58,10 +58,13 @@ export async function handleInteractions(client) {
 					}
 				}
 
-				return interaction.reply({
-					content: await interactions[sub].interaction(db, interaction),
-					flags: 64 // ephemeral
-				});
+                const reply = await interactions[sub].interaction(db, interaction);
+                if (reply) {
+                    return interaction.reply({
+                        content: reply,
+                        flags: 64 // ephemeral
+                    });
+                }
 			}
 		} catch (e) {
 			console.error(e);
