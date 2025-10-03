@@ -13,6 +13,12 @@ import { entityUpdates } from "./services/information.js";
 
 import "./util/shutdown.js";
 
+import { readFileSync } from "fs";
+const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
+const { name, version } = pkg;
+export const ZKILLBOT_VERSION = `${name} v${version}`;
+
+console.log(ZKILLBOT_VERSION);
 
 const { DISCORD_BOT_TOKEN, CLIENT_ID, MONGO_URI, MONGO_DB, REDISQ_URL } = process.env;
 export const { ZKILLBOT_CHANNEL_WEBHOOK } = process.env;
@@ -44,7 +50,7 @@ async function init() {
 				{ body: SLASH_COMMANDS }
 			);
 			console.log("✅ Slash commands registered.");
-			sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, "*zKillBot activating - acquiring ~~targets~~ killmails*");
+			sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, `*${ZKILLBOT_VERSION} activating - acquiring ~~targets~~ killmails*`);
 		}
 
 		client.once("clientReady", async () => {

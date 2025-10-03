@@ -1,7 +1,7 @@
 import { discord_posts_queue } from "../services/discord-post.js";
 import { sleep } from "./helpers.js";
 import { app_status, shareAppStatus } from "./shareAppStatus.js";
-import { ZKILLBOT_CHANNEL_WEBHOOK } from "../zkillbot.js";
+import { ZKILLBOT_CHANNEL_WEBHOOK, ZKILLBOT_VERSION } from "../zkillbot.js";
 import { sendWebhook } from "./webhook.js";
 
 // listen for both SIGINT and SIGTERM
@@ -11,7 +11,7 @@ import { sendWebhook } from "./webhook.js";
 
 async function gracefulShutdown(signal) {
 	try {
-		sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, "*beginning shutdown*");
+		sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, `*${ZKILLBOT_VERSION} beginning shutdown*`);
 		if (app_status.exiting) return; // already cleaning up
 		app_status.exiting = true;
 
@@ -31,7 +31,7 @@ async function gracefulShutdown(signal) {
 	// fyi to those reading the code - mongodb handles its own shutdown on process exit
 
 	console.log("✅ Shutdown complete.");	
-	await sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, "*shutdown complete*");
-
+	await sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, `*ZKILLBOT_VERSION shutdown complete*`);
+	await sleep(2000); // wait for webhook to send
 	process.exit(0);
 }
