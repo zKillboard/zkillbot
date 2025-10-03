@@ -9,7 +9,7 @@ export async function interaction(db, interaction) {
 	let entityIds = doc?.entityIds || [];
 
 	// 🔑 resolve IDs to names
-	const names = await getNames(entityIds);
+	const names = await getNames(db, entityIds);
 	let lines = (entityIds || [])
 		.map(id => `• ${id} — ${names[id] ?? "Unknown"}`)
 		.join("\n");

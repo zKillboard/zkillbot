@@ -31,7 +31,7 @@ async function gracefulShutdown(signal) {
 	// fyi to those reading the code - mongodb handles its own shutdown on process exit
 
 	console.log("✅ Shutdown complete.");	
-	await sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, `*ZKILLBOT_VERSION shutdown complete*`);
+	await sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, `*${ZKILLBOT_VERSION} shutdown complete*`);
 	await sleep(2000); // wait for webhook to send
 	process.exit(0);
 }

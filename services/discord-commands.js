@@ -1,4 +1,4 @@
-import {SlashCommandBuilder} from "discord.js";
+import { SlashCommandBuilder  } from "discord.js";
 
 // --- slash command definitions ---
 export const SLASH_COMMANDS = [
@@ -48,6 +48,11 @@ export const SLASH_COMMANDS = [
 			sub
 				.setName("remove_all_subs")
 				.setDescription("Clears all subscriptions in this channel")
+		)
+		.addSubcommand(sub =>
+			sub
+				.setName("about")
+				.setDescription("About zKillBot, the Discord bot behind zKillboard. Includes stats and a link to the documentation.")
 		)
         .addSubcommandGroup(sub =>
             sub

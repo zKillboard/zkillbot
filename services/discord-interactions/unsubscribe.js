@@ -1,5 +1,4 @@
 import { ISK_PREFIX, LABEL_PREFIX, LABEL_FILTERS } from "../../util/constants.js";
-import { getNames } from "../information.js";
 import { getFirstString } from "../../util/helpers.js";
 
 export const requiresManageChannelPermission = true;

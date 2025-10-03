@@ -68,7 +68,7 @@ export async function interaction(db, interaction) {
 			entityId = suggestions[0].data.id;
 		}
 
-		let names = await getNames([entityId]);
+		let names = await getNames(db, [entityId]);
 		if (Object.values(names).length === 0) {
 			return ` ❌ Unable to subscribe... **${valueRaw}** is not a valid entity id`;
 		}
