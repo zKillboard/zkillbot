@@ -12,7 +12,7 @@ export async function interaction(db, interaction) {
 		return ' 🛑 Before you subscribe, please run `/zkillbot check`` to ensure all permissions are set properly for this channel';
 	}
 
-	let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
+	let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]).toLowerCase();
 
 	if (valueRaw.startsWith(ISK_PREFIX)) {
 		const iskValue = Number(valueRaw.substr(ISK_PREFIX.length));
@@ -29,9 +29,9 @@ export async function interaction(db, interaction) {
 			{ upsert: true }
 		);
 
-		return `📡 Subscribed killmails having iskValue of at least ${iskValue} to channel`;
+		return `📡 Subscribed this channel to killmails having iskValue of at least ${iskValue}`;
 	} else if (valueRaw.startsWith(LABEL_PREFIX)) {
-		const label_filter = valueRaw.substr(LABEL_PREFIX.length);
+		const label_filter = valueRaw.slice(LABEL_PREFIX.length).trim().toLowerCase();
 		if (LABEL_FILTERS.indexOf(label_filter) < 0) {
 			return ` ❌ Unable to subscribe to label **${label_filter}**, it is not one of the following:\n` + LABEL_FILTERS.join(', ');
 		}

@@ -44,7 +44,7 @@ async function init() {
 				{ body: SLASH_COMMANDS }
 			);
 			console.log("✅ Slash commands registered.");
-			sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, "*zKillBot activating - acquiring targets*");
+			sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, "*zKillBot activating - acquiring ~~targets~~ killmails*");
 		}
 
 		client.once("clientReady", async () => {

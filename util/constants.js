@@ -6,8 +6,18 @@ export const HEADERS = {
 		"Accept": "application/json"
 	}
 };
+
+export const SUGGESTION_LABEL_FILTERS = [
+	"#:1", "#:5+", "#:10+", "#:25+", "#:50+", "#:100+", 
+	"awox", "bigisk", "capital",
+	"concord", "insaneisk",
+	"loc:abyssal", "loc:drifter", "loc:highsec", "loc:lowsec", "loc:nullsec", "loc:w-space",
+	"npc", "pvp", "solo",
+	"tz:au", "tz:eu", "tz:ru", "tz:use", "tz:usw"
+];
+
 export const LABEL_FILTERS = [
-	"#:1", "#:10+", "#:100+", "#:1000+", "#:2+", "#:25+", "#:5+", "#:50+",
+	"#:1", "#:2+", "#:5+", "#:10+", "#:25+", "#:50+", "#:100+", "#:1000+",
 	"atShip", "awox", "bigisk", "capital",
 	"cat:11", "cat:18", "cat:22", "cat:23", "cat:350001", "cat:40", "cat:46", "cat:6", "cat:65", "cat:87",
 	"concord", "extremeisk", "ganked", "insaneisk",
