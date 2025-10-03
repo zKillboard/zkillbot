@@ -27,7 +27,7 @@ export async function doDiscordPosts(db) {
 				continue; // loop without waiting
 			}
 
-			let embed = await getKillmailEmbeds(killmail, zkb, colorCode);
+			let embed = await getKillmailEmbeds(db, killmail, zkb, colorCode);
 			postToDiscord(channelId, embed); // lack of await is on purpose
 			break; // break loops, pause for the interval and then start again
 		}
@@ -39,7 +39,7 @@ export async function doDiscordPosts(db) {
 }
 const embeds_cache = new NodeCache({ stdTTL: 30 });
 
-async function getKillmailEmbeds(killmail, zkb, colorCode) {
+async function getKillmailEmbeds(db, killmail, zkb, colorCode) {
 	let embed = embeds_cache.get(killmail.killmail_id);
 	if (!embed) {
 		const url = `https://zkillboard.com/kill/${killmail.killmail_id}/`;
@@ -52,8 +52,8 @@ async function getKillmailEmbeds(killmail, zkb, colorCode) {
 			}
 		}
 		const [names, system] = await Promise.all([
-			getNames([...getIDs(killmail.victim), ...getIDs(final_blow)]),
-			getSystemNameAndRegion(killmail.solar_system_id)
+			getNames(db, [...getIDs(killmail.victim), ...getIDs(final_blow)]),
+			getSystemNameAndRegion(db, killmail.solar_system_id)
 		]);
 
 		const victim = fillNames(names, killmail.victim);

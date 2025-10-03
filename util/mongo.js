@@ -18,7 +18,11 @@ export async function initMongo(MONGO_URI, MONGO_DB) {
 	await subsCollection.createIndex({ entityIds: 1 });
 	await subsCollection.createIndex({ iskValue: 1 });
 	await subsCollection.createIndex({ labels: 1 });
+
+	const information = db.collection("information");
+	await information.createIndex({ type: 1, id: 1 }, { unique: true });
+
 	console.log("✅ Connected to MongoDB");
 
-	return { db, entities, sentHistory, subsCollection };
+	return { db, entities, sentHistory, subsCollection, information };
 }

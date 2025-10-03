@@ -47,7 +47,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 				...killmail.attackers.map(a => a.ship_type_id)
 			].map(Number).filter(Boolean);
 
-			const { system, constellation } = await getSystemDetails(killmail.solar_system_id);
+			const { system, constellation } = await getSystemDetails(db, killmail.solar_system_id);
 			attackerEntities.push(zkb.locationID);
 			attackerEntities.push(killmail.solar_system_id);
 			attackerEntities.push(system.constellation_id);
