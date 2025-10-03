@@ -4,6 +4,7 @@ import { SLASH_COMMANDS } from "./services/discord-commands.js";
 import { handleInteractions } from "./services/discord-interactions.js";
 import { doDiscordPosts } from "./services/discord-post.js";
 import { sendWebhook } from "./util/webhook.js";
+import { sleep } from "./util/helpers.js";
 
 import dotenv from "dotenv";
 dotenv.config({ quiet: true });
@@ -17,7 +18,6 @@ import { readFileSync } from "fs";
 const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
 const { name, version } = pkg;
 export const ZKILLBOT_VERSION = `${name} v${version}`;
-
 console.log(ZKILLBOT_VERSION);
 
 const { DISCORD_BOT_TOKEN, CLIENT_ID, MONGO_URI, MONGO_DB, REDISQ_URL } = process.env;
@@ -50,7 +50,6 @@ async function init() {
 				{ body: SLASH_COMMANDS }
 			);
 			console.log("✅ Slash commands registered.");
-			sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, `*${ZKILLBOT_VERSION} activating - acquiring ~~targets~~ killmails*`);
 		}
 
 		client.once("clientReady", async () => {
@@ -60,6 +59,13 @@ async function init() {
 			client.db = await initMongo(MONGO_URI, MONGO_DB);
 
 			entityUpdates(client.db);
+
+			if (process.env.NODE_ENV !== "development") {
+				// allow previous instances of zKillBot to finish
+				await sleep(15000);
+			}
+			sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, `*${ZKILLBOT_VERSION} activating - acquiring ~~targets~~ killmails*`);
+
 			pollRedisQ(client.db, REDISQ_URL);
 			
 		});
