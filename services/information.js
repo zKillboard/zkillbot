@@ -50,18 +50,14 @@ export async function getNames(db, entityIds, use_cache = true) {
 			}
 		}
 	}
-	console.log(needs_lookup.length, 'of', entityIds.length, "names need lookup");
 
 	if (needs_lookup.length > 0) {
-		const res = await fetch("https://esi.evetech.net/universe/names", {
-			method: "POST",
-			body: JSON.stringify(needs_lookup),
-			...HEADERS
-		});
-		const json = await res.json();
+		const json = await doNamesLookup(needs_lookup);
 
 		// add fetched names into cache
 		for (const e of json) {
+			if (e.category === 'unknown') continue;
+
 			names_cache.set(e.id, e.name);
 			await db.entities.updateOne({
 				entity_id: e.id
@@ -75,6 +71,33 @@ export async function getNames(db, entityIds, use_cache = true) {
 
 	// return an object with all the requested IDs → names
 	return Object.fromEntries(ids.map(id => [id, names_cache.get(id)]));
+}
+
+async function doNamesLookup(ids) {
+	if (ids.length == 0) return [];
+
+	try {
+		const res = await fetch("https://esi.evetech.net/universe/names", {
+			method: "POST",
+			body: JSON.stringify(ids),
+			...HEADERS
+		});
+		return await res.json();
+	} catch (e) {
+		if (ids.length == 1) {
+			// Problem with this single ID
+			return [{
+				category: 'unknown',
+				id: ids[0],
+				name: `${ids[0]} Lookup Failed`
+			}];
+		}
+		// Binary split until we're down to the one id that is causing issues....
+		const mid = Math.ceil(ids.length / 2);
+		const firstHalf = ids.slice(0, mid);
+		const secondHalf = ids.slice(mid);
+		return [...await doNamesLookup(firstHalf), ...await doNamesLookup(secondHalf)];
+	}
 }
 
 export function fillNames(names, entity) {
