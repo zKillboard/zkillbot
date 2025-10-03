@@ -1,4 +1,4 @@
-export const requiresManageChannelPermission = true;
+export const requiresManageChannelPermission = false;
 
 import NodeCache from "node-cache";
 const stats_cache = new NodeCache({ stdTTL: 900 });
