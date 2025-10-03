@@ -9,7 +9,7 @@ export async function autocomplete(db, interaction) {
 		const doc = await db.subsCollection.findOne({ guildId, channelId });
 		let entityIds = doc?.entityIds || [];
 
-		const names = await getNames(entityIds);
+		const names = await getNames(db, entityIds);
 		const options = [];
 
 		for (const id in names) {
