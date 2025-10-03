@@ -26,7 +26,7 @@ export async function interaction(db, interaction) {
 			}
 		]).next()
 
-		const post_count_seven_days = await db.subsCollection.countDocuments();
+		const post_count_seven_days = await db.sentHistory.countDocuments();
 		zkillbot_stats = {
 			channel_stats,
 			post_count_seven_days
