@@ -1,6 +1,7 @@
-export async function sendWebhook(webhookURL, payload) {
+export async function sendWebhook(webhookURL, payload, wait = true) {
 	if (webhookURL && process.env.NODE_ENV !== "development") {
-		return await fetch(`${webhookURL}?wait=true`, {
+		const url = webhookURL + (wait ? "?wait=true" : "");
+		return await fetch(url, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
 			body: JSON.stringify({
