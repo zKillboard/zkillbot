@@ -17,50 +17,66 @@ export function command(sub) {
 }
 
 export async function interaction(db, interaction) {
-	const { guildId, channelId } = interaction;
+	try {
+		const { guildId, channelId } = interaction;
 
-	let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
+		let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
 
-	if (valueRaw.startsWith(ISK_PREFIX)) {
+		if (valueRaw.startsWith(ISK_PREFIX)) {
+			const res = await db.subsCollection.updateOne(
+				{ guildId, channelId },
+				{ $unset: { iskValue: 1 } }
+			);
+
+			if (res.modifiedCount > 0) {
+				return `❌ Unsubscribed this channel from killmails of a minimum isk value`;
+			} else {
+				return `⚠️ No subscription found for killmails of a minimum isk value`;
+			}
+		}
+
+		if (valueRaw.startsWith(LABEL_PREFIX)) {
+			const label_filter = valueRaw.substr(LABEL_PREFIX.length);
+			const res = await db.subsCollection.updateOne(
+				{ guildId, channelId },
+				{ $pull: { labels: label_filter } }
+			);
+
+			if (res.modifiedCount > 0) {
+				return `❌ Unsubscribed this channel from label **${label_filter}**`;
+			} else {
+				return `⚠️ No subscription found for label **${label_filter}**`;
+			}
+		}
+
+		const entityId = Number(valueRaw);
+		if (Number.isNaN(entityId)) {
+			return ` ❌ Unable to unsubscribe... **${valueRaw}** is not a number`;
+		}
+
 		const res = await db.subsCollection.updateOne(
 			{ guildId, channelId },
-			{ $unset: { iskValue: 1 } }
+			{ $pull: { entityIds: entityId } }
 		);
 
 		if (res.modifiedCount > 0) {
-			return `❌ Unsubscribed this channel from killmails of a minimum isk value`;
+			return `❌ Unsubscribed this channel from **${entityId}**`;
 		} else {
-			return `⚠️ No subscription found for killmails of a minimum isk value`;
+			return `⚠️ No subscription found for **${entityId}**`;
 		}
+	} finally {
+		cleanupSubscriptions(db);
 	}
+}
 
-	if (valueRaw.startsWith(LABEL_PREFIX)) {
-		const label_filter = valueRaw.substr(LABEL_PREFIX.length);
-		const res = await db.subsCollection.updateOne(
-			{ guildId, channelId },
-			{ $pull: { labels: label_filter } }
-		);
+async function cleanupSubscriptions(db) {
+	try {
+		// Cleanup any empty label arrays
+		await db.subscriptions.updateMany({ labels: { $size: 0 } }, { $unset: { labels: "" } });
 
-		if (res.modifiedCount > 0) {
-			return `❌ Unsubscribed this channel from label **${label_filter}**`;
-		} else {
-			return `⚠️ No subscription found for label **${label_filter}**`;
-		}
-	}
-
-	const entityId = Number(valueRaw);
-	if (Number.isNaN(entityId)) {
-		return ` ❌ Unable to unsubscribe... **${valueRaw}** is not a number`;
-	}
-
-	const res = await db.subsCollection.updateOne(
-		{ guildId, channelId },
-		{ $pull: { entityIds: entityId } }
-	);
-
-	if (res.modifiedCount > 0) {
-		return `❌ Unsubscribed this channel from **${entityId}**`;
-	} else {
-		return `⚠️ No subscription found for **${entityId}**`;
+		// Cleanup any empty entityId arrays
+		await db.subscriptions.updateMany({ entityIds: { $size: 0 } }, { $unset: { entityIds: 1 } });
+	} catch (e) {
+		console.error('cleanupEmptySubscriptions error:', e);
 	}
 }
