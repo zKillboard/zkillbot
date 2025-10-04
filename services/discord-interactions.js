@@ -1,5 +1,8 @@
 import { readdirSync } from "fs";
 import path from "path";
+import { sendWebhook } from "../util/webhook.js";
+
+const EPHERMERAL = 64;
 
 async function handleImports(directory) {
 	const object = {};
@@ -41,18 +44,26 @@ export async function handleInteractions(client) {
 					if (!canManageChannel) {
 						return interaction.reply({
 							content: "❌ ACCESS DENIED - insufficient permissions - **MANAGE CHANNEL** permission required ❌",
-							flags: 64 // ephemeral
+							flags: EPHERMERAL
 						});
 					}
 				}
 
 				return interaction.reply({
 					content: await interactions[sub].interaction(db, interaction),
-					flags: 64 // ephemeral
+					flags: EPHERMERAL
 				});
 			}
 		} catch (e) {
-			console.error(e);
+			console.error('command:', sub, '\n', e);
+
+			// no await on purpose, don't want to hold up the reply
+			sendWebhook(process.env.DISCORD_ERROR_WEBHOOK, `‼️ ERROR - an error occurred while processing **${sub} command:\n${e}`, false);
+			
+			return interaction.reply({
+				content: "‼️ ERROR - an error occurred while processing your request ‼️",
+				flags: EPHERMERAL
+			});
 		}
 	});
 }
