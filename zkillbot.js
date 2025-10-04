@@ -10,7 +10,7 @@ import { sleep } from "./util/helpers.js";
 import dotenv from "dotenv";
 dotenv.config({ quiet: true });
 
-import { pollRedisQ } from "./services/pollRedisQ.js";
+import { pollRedisQ } from "./services/poll-redisq.js";
 import { entityUpdates } from "./services/information.js";
 
 import "./util/shutdown.js";
