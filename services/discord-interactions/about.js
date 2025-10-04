@@ -3,6 +3,12 @@ export const requiresManageChannelPermission = false;
 import NodeCache from "node-cache";
 const stats_cache = new NodeCache({ stdTTL: 900 });
 
+export function command(sub) {
+	return sub
+		.setName("about")
+		.setDescription("About zKillBot, the Discord bot behind zKillboard. Includes stats and a link to the documentation.")
+}
+
 export async function interaction(db, interaction) {
 	let zkillbot_stats = stats_cache.get("about_stats");
 

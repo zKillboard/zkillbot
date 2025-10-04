@@ -1,6 +1,7 @@
 #!/usr/bin/env node
-import { Client, GatewayIntentBits, REST, Routes, Subscription } from "discord.js";
-import { SLASH_COMMANDS } from "./services/discord-commands.js";
+import { GatewayIntentBits, REST, Routes, Subscription } from "discord.js";
+import { ZKILLBOT_DISCORD_CLIENT } from "./classes/zkillbot_discord_client.js";
+import { loadSlashCommands } from "./services/discord-commands.js";
 import { handleInteractions } from "./services/discord-interactions.js";
 import { doDiscordPosts } from "./services/discord-post.js";
 import { sendWebhook } from "./util/webhook.js";
@@ -28,8 +29,8 @@ if (!DISCORD_BOT_TOKEN || !CLIENT_ID || !REDISQ_URL || !MONGO_URI || !MONGO_DB) 
 	process.exit(1);
 }
 
-export const client = new Client({
-	intents: [GatewayIntentBits.Guilds], 
+export const client = new ZKILLBOT_DISCORD_CLIENT({
+	intents: [GatewayIntentBits.Guilds]
 });
 
 async function init() {
@@ -41,13 +42,13 @@ async function init() {
 		if (process.env.NODE_ENV === "development") {
 			await rest.put(
 				Routes.applicationGuildCommands(CLIENT_ID, process.env.GUILD_ID),
-				{ body: SLASH_COMMANDS }
+				{ body: await loadSlashCommands() }
 			);
 			console.log("✅ DEVELOPMENT Slash commands registered.");
 		} else {
 			await rest.put(
 				Routes.applicationCommands(CLIENT_ID),
-				{ body: SLASH_COMMANDS }
+				{ body: await loadSlashCommands() }
 			);
 			console.log("✅ Slash commands registered.");
 		}

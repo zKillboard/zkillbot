@@ -1,58 +1,17 @@
 import { SlashCommandBuilder  } from "discord.js";
+import fs from "fs";
+import path from "path";
+const commandsPath = path.join(process.cwd(), "./services/discord-interactions/");
 
-// --- slash command definitions ---
-export const SLASH_COMMANDS = [
-	new SlashCommandBuilder()
+export async function loadSlashCommands() {
+	const builder = new SlashCommandBuilder()
 		.setName("zkillbot")
-		.setDescription("zKillBot command group")
-		.addSubcommand(sub =>
-			sub
-				.setName("invite")
-				.setDescription("Get the invite link for zKillBot")
-		)
-		.addSubcommand(sub =>
-			sub
-				.setName("subscribe")
-				.setDescription("Subscribe by name, ID, or prefixed with isk: or label:")
-				.addStringOption(opt =>
-					opt
-						.setName("filter")
-						.setDescription("Subscribe by name, ID, or prefixed with isk: or label:")
-						.setRequired(true)
-						.setAutocomplete(true)
-				)
-		)
-		.addSubcommand(sub =>
-			sub
-				.setName("unsubscribe")
-				.setDescription("Unsubscribe by name, ID, or prefixed with isk: or label:")
-				.addStringOption(opt =>
-					opt
-						.setName("filter")
-						.setDescription("Unsubscribe by name, ID, or prefixed with isk: or label:")
-						.setRequired(true)
-						.setAutocomplete(true)
-				)
-		)
-		.addSubcommand(sub =>
-			sub
-				.setName("list")
-				.setDescription("List all subscriptions in this channel")
-		)
-		.addSubcommand(sub =>
-			sub
-				.setName("check")
-				.setDescription("Check if the bot has permission to send messages in this channel")
-		)
-		.addSubcommand(sub =>
-			sub
-				.setName("remove_all_subs")
-				.setDescription("Clears all subscriptions in this channel")
-		)
-		.addSubcommand(sub =>
-			sub
-				.setName("about")
-				.setDescription("About zKillBot, the Discord bot behind zKillboard. Includes stats and a link to the documentation.")
-		)
-		.toJSON()
-];
+		.setDescription("zKillBot command group");
+	
+	for (const file of fs.readdirSync(commandsPath).filter(f => f.endsWith(".js"))) {
+		const { command } = await import(`./discord-interactions/${file}`);
+		builder.addSubcommand(sub => command(sub));
+	}
+
+	return [builder.toJSON()];
+}

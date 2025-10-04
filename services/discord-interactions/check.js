@@ -1,5 +1,11 @@
 export const requiresManageChannelPermission = true;
 
+export function command(sub) {
+	return sub
+		.setName("check")
+		.setDescription("Check if the bot has permission to send messages in this channel")
+}
+
 export async function interaction(db, interaction) {
 	const channel = interaction.channel;
 

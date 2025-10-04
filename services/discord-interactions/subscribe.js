@@ -4,6 +4,19 @@ import { getFirstString, unixtime } from "../../util/helpers.js";
 
 export const requiresManageChannelPermission = true;
 
+export function command(sub) {
+	return sub
+		.setName("subscribe")
+		.setDescription("Subscribe by name, ID, or prefixed with isk: or label:")
+		.addStringOption(opt =>
+			opt
+				.setName("filter")
+				.setDescription("Subscribe by name, ID, or prefixed with isk: or label:")
+				.setRequired(true)
+				.setAutocomplete(true)
+		)
+}
+
 export async function interaction(db, interaction) {
 	const { guildId, channelId } = interaction;
 

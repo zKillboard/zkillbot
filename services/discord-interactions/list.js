@@ -2,6 +2,12 @@ import { getNames } from "../information.js";
 
 export const requiresManageChannelPermission = false;
 
+export function command(sub) {
+	return sub
+		.setName("list")
+		.setDescription("List all subscriptions in this channel")
+}
+
 export async function interaction(db, interaction) {
 	const { guildId, channelId } = interaction;
 

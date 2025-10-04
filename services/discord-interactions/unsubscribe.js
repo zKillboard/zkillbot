@@ -3,6 +3,19 @@ import { getFirstString } from "../../util/helpers.js";
 
 export const requiresManageChannelPermission = true;
 
+export function command(sub) {
+	return sub
+		.setName("unsubscribe")
+		.setDescription("Unsubscribe by name, ID, or prefixed with isk: or label:")
+		.addStringOption(opt =>
+			opt
+				.setName("filter")
+				.setDescription("Unsubscribe by name, ID, or prefixed with isk: or label:")
+				.setRequired(true)
+				.setAutocomplete(true)
+		)
+}
+
 export async function interaction(db, interaction) {
 	const { guildId, channelId } = interaction;
 
