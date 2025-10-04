@@ -76,7 +76,7 @@ async function getKillmailEmbeds(db, killmail, zkb, colorCode) {
 		const fb_employer = fb.alliance_name ?? (fb.corporation_name ?? (fb.faction_name ?? '???'));
 		const solo = zkb.labels.indexOf('solo') > -1 ? ', solo, ' : '';
 		const attacker_count = killmail.attackers.length - 1;
-		const others = attacker_count > 0 ? ' along with ' + attacker_count + ' other ' + (solo > 0 ? 'npc' : 'pilot') + (attacker_count > 1 ? 's' : '') : '';
+		const others = attacker_count > 0 ? ' along with ' + attacker_count + ' other ' + (solo.length > 0 ? 'NPC' : 'pilot') + (attacker_count > 1 ? 's' : '') : '';
 
 		const image = `https://images.evetech.net/types/${killmail.victim.ship_type_id}/icon`;
 
