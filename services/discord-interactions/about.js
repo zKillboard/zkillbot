@@ -41,7 +41,7 @@ export async function interaction(db, interaction) {
 	}
 
 	return `**About zKillBot**\n \
-		**Discord Servrs:** ${zkillbot_stats.channel_stats.guildCount} \n \
+		**Discord Servers:** ${zkillbot_stats.channel_stats.guildCount} \n \
 		**Channels w/ Subs:** ${zkillbot_stats.channel_stats.channelCount} \n \
 		**Subscriptions:** ${zkillbot_stats.channel_stats.totalDocs} \n \
 		**Posts in the last 7 days:** ${zkillbot_stats.post_count_seven_days} \n \
