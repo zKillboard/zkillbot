@@ -6,6 +6,7 @@ const EPHERMERAL = 64;
 
 async function handleImports(directory) {
 	const object = {};
+	// @ts-ignore
 	const dir = new URL(directory, import.meta.url).pathname;
 
 	for (const file of readdirSync(dir)) {

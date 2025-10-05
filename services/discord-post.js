@@ -113,6 +113,7 @@ async function postToDiscord(channelId, embed) {
 			const channel = await client.channels.fetch(channelId);
 
 			if (channel && channel.isTextBased()) {
+				// @ts-ignore
 				const canSend = channel.permissionsFor(client.user)?.has([
 					PermissionFlagsBits.ViewChannel,
 					PermissionFlagsBits.SendMessages,
@@ -120,6 +121,7 @@ async function postToDiscord(channelId, embed) {
 				]);
 
 				if (canSend) {
+					// @ts-ignore
 					await channel.send({
 						embeds: [embed]
 					});
