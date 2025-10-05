@@ -12,7 +12,7 @@ export function shareAppStatus() {
 		"  Discord Queue:".padEnd(20) + String(discord_posts_queue.length).padStart(5) +
 		"  Discord Posts:".padEnd(20) + String(app_status.discord_post_count).padStart(5);
 
-	console.log(line);
+	console.info(line);
 
 	app_status.redisq_count = 0;
 	app_status.discord_post_count = 0;

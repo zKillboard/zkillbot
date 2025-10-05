@@ -42,6 +42,7 @@ export async function interaction(db, interaction) {
 			{ upsert: true }
 		);
 
+		console.log(`Subscribed channel ${channelId} in guild ${guildId} to iskValue ${iskValue}`);
 		return `📡 Subscribed this channel to killmails having iskValue of at least ${iskValue}`;
 	} else if (valueRaw.startsWith(LABEL_PREFIX)) {
 		const label_filter = valueRaw.slice(LABEL_PREFIX.length).trim().toLowerCase();
@@ -55,6 +56,7 @@ export async function interaction(db, interaction) {
 			{ upsert: true }
 		);
 
+		console.log(`Subscribed channel ${channelId} in guild ${guildId} to label ${label_filter}`);
 		return `📡 Subscribed this channel to killmails having label **${label_filter}**`;
 	} else {
 		let entityId = Number(valueRaw);
@@ -99,6 +101,7 @@ export async function interaction(db, interaction) {
 			{ upsert: true }
 		);
 
-		return `📡 Subscribed this channel to ${name}`;
+		console.log(`Subscribed channel ${channelId} in guild ${guildId} to ${name} (${entityId})`);
+		return `📡 Subscribed this channel to **${name} (${entityId})**`;
 	}
 }

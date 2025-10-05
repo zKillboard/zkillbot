@@ -1,5 +1,6 @@
 import { ISK_PREFIX, LABEL_PREFIX, LABEL_FILTERS } from "../../util/constants.js";
 import { getFirstString } from "../../util/helpers.js";
+import { getNames } from "../information.js";
 
 export const requiresManageChannelPermission = true;
 
@@ -29,6 +30,7 @@ export async function interaction(db, interaction) {
 			);
 
 			if (res.modifiedCount > 0) {
+				console.log(`Unsubscribed channel ${channelId} in guild ${guildId} from iskValue subscription`);
 				return `❌ Unsubscribed this channel from killmails of a minimum isk value`;
 			} else {
 				return `⚠️ No subscription found for killmails of a minimum isk value`;
@@ -43,6 +45,7 @@ export async function interaction(db, interaction) {
 			);
 
 			if (res.modifiedCount > 0) {
+				console.log(`Unsubscribed channel ${channelId} in guild ${guildId} from label ${label_filter}`);
 				return `❌ Unsubscribed this channel from label **${label_filter}**`;
 			} else {
 				return `⚠️ No subscription found for label **${label_filter}**`;
@@ -60,7 +63,10 @@ export async function interaction(db, interaction) {
 		);
 
 		if (res.modifiedCount > 0) {
-			return `❌ Unsubscribed this channel from **${entityId}**`;
+			let names = await getNames(db, [entityId]);
+			let name = names[entityId] || entityId;
+			console.log(`Unsubscribed channel ${channelId} in guild ${guildId} from entityId ${entityId}`);
+			return `❌ Unsubscribed this channel from **${name} (${entityId})**`;
 		} else {
 			return `⚠️ No subscription found for **${entityId}**`;
 		}
@@ -72,16 +78,19 @@ export async function interaction(db, interaction) {
 async function cleanupSubscriptions(db) {
 	try {
 		// Cleanup any empty label arrays
-		await db.subsCollection.updateMany({ labels: { $size: 0 } }, { $unset: { labels: "" } });
+		cleanupReport('Empty label check', await db.subsCollection.updateMany({ labels: { $size: 0 } }, { $unset: { labels: "" } }));
 
 		// Cleanup any empty entityId arrays
-		await db.subsCollection.updateMany({ entityIds: { $size: 0 } }, { $unset: { entityIds: 1 } });
+		cleanupReport('Empty entityId check', await db.subsCollection.updateMany({ entityIds: { $size: 0 } }, { $unset: { entityIds: 1 } }));
+		
+		// Cleanup any subscriptions with iskValue of 0 or less
+		cleanupReport('Invalid iskValue check', await db.subsCollection.updateMany({ iskValue: { $lt: 100000000 } }, { $unset: { iskValue: 1 } }));
 
 		// Updated empty subscriptions to be cleared after 24 hours
 		// This gives someone a chance to re-add a subscription when they remove the last one,
 		// therefore they don't need to `/zkillbot check` again. 
 		// Only set cleanupAt if it isn't already set, so we don't extend the time indefinitely
-		await db.subsCollection.updateMany(
+		cleanupReport('Empty subscriptions check', await db.subsCollection.updateMany(
 			{
 				$and: [
 					{ entityIds: { $exists: false } },
@@ -91,18 +100,18 @@ async function cleanupSubscriptions(db) {
 				]
 			},
 			{ $set: { cleanupAt: new Date(Date.now() + 24 * 60 * 60 * 1000) } }
-		);
+		));
 
 		// Delete any subscriptions that have been empty for more than 24 hours
 		// and don't have any existing subscriptions
-		await db.subsCollection.deleteMany({
+		cleanupReport('Removing empty subscriptions', await db.subsCollection.deleteMany({
 			$and: [
 				{ entityIds: { $exists: false } },
 				{ iskValue: { $exists: false } },
 				{ labels: { $exists: false } },
 				{ cleanupAt: { $lte: new Date() } }
 			]
-		});
+		}));
 
 		// unset cleanupAt on any non-empty subscriptions
 		await db.subsCollection.updateMany(
@@ -118,5 +127,11 @@ async function cleanupSubscriptions(db) {
 		);
 	} catch (e) {
 		console.error('cleanupEmptySubscriptions error:', e);
+	}
+}
+
+function cleanupReport(comment, res) {
+	if (res.modifiedCount > 0) {
+		console.log(`cleanupSubscriptions: ${comment} - affected ${res.modifiedCount} subscriptions`);
 	}
 }

@@ -1,5 +1,5 @@
 import { HEADERS } from "../util/constants.js";
-import { app_status } from "../util/shareAppStatus.js";
+import { app_status } from "../util/app-status.js";
 import { getSystemDetails } from "./information.js";
 import { discord_posts_queue } from "./discord-post.js";
 

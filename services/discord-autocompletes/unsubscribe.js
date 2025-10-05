@@ -13,7 +13,7 @@ export async function autocomplete(db, interaction) {
 		const options = [];
 
 		for (const id in names) {
-			options.push({ name: `${id}:${names[id]}`, value: `${id}` });
+			options.push({ name: `${names[id]} (${id})`, value: `${id}` });
 		}
 
 		const labels = doc?.labels || [];

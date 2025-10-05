@@ -13,5 +13,6 @@ export async function interaction(db, interaction) {
 		{ guildId, channelId }
 	);
 
+	console.log(`Removed all subscriptions for channel ${channelId} in guild ${guildId}`);
 	return '❌ All subscriptions removed from this channel.  To subscribe again please run `/zkillbot check`';
 }

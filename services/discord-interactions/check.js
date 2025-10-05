@@ -28,6 +28,8 @@ export async function interaction(db, interaction) {
 		);
 	}
 
+	console.log(`Checked permissions for channel ${channel.id} in guild ${interaction.guildId}: View(${canView}), Send(${canSend}), Embed(${canEmbed}), TextBased(${isTextBased})`);
+
 	return [
 		`🔍 Permission check for <#${channel.id}>`,
 		`• View Channel: ${canView ? "✅" : "❌ (allow zkillbot#0066 to view channel)"}`,

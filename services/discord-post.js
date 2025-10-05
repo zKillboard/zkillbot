@@ -4,7 +4,7 @@ import { PermissionFlagsBits } from "discord.js";
 import { getNames, fillNames } from "./information.js";
 import { LOCALE } from "../util/constants.js";
 import { getIDs } from "../util/helpers.js";
-import { app_status } from "../util/shareAppStatus.js";
+import { app_status } from "../util/app-status.js";
 import { client } from "../zkillbot.js";
 import { getSystemNameAndRegion } from "./information.js";
 
