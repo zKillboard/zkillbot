@@ -22,7 +22,7 @@ export async function interaction(db, interaction) {
 
 	let doc = await db.subsCollection.findOne({ channelId: channelId });
 	if (!doc || doc.checked != true) {
-		return ' 🛑 Before you subscribe, please run `/zkillbot check`` to ensure all permissions are set properly for this channel';
+		return ' 🛑 Before you subscribe, please run `/zkillbot check` to ensure all permissions are set properly for this channel';
 	}
 
 	let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]).toLowerCase();
