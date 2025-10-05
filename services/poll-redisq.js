@@ -33,6 +33,9 @@ export async function pollRedisQ(db, REDISQ_URL) {
 					.find({ entityIds: { $in: victimEntities } })
 					.toArray();
 				for (const match of matchingSubs) {
+					let entityIds = match.entityIds.filter(Boolean) || [];
+					if (entityIds.length === 0) continue;
+
 					let colorCode = 15548997; // red
 					const channelId = match.channelId;
 					discord_posts_queue.push({ db, match, channelId, killmail, zkb, colorCode, matchType: 'victim' });
@@ -59,6 +62,9 @@ export async function pollRedisQ(db, REDISQ_URL) {
 					.find({ entityIds: { $in: attackerEntities } })
 					.toArray();
 				for (const match of matchingSubs) {
+					let entityIds = match.entityIds.filter(Boolean) || [];
+					if (entityIds.length === 0) continue;
+
 					let colorCode = 5763719; // green
 					const channelId = match.channelId;
 					discord_posts_queue.push({ db, match, channelId, killmail, zkb, colorCode, matchType: 'attacker' });
@@ -87,6 +93,9 @@ export async function pollRedisQ(db, REDISQ_URL) {
 						.find({ labels: { $in: labels } })
 						.toArray();
 					for (const match of matchingSubs) {
+						let labels = match.labels.filter(Boolean) || [];
+						if (labels.length === 0) continue;
+
 						let colorCode = 3569059; // dark blue
 						const channelId = match.channelId;
 						discord_posts_queue.push({ db, match, channelId, killmail, zkb, colorCode, matchType: 'label' });
