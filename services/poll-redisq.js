@@ -35,7 +35,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 				for (const match of matchingSubs) {
 					let colorCode = 15548997; // red
 					const channelId = match.channelId;
-					discord_posts_queue.push({ db, channelId, killmail, zkb, colorCode });
+					discord_posts_queue.push({ db, match, channelId, killmail, zkb, colorCode, matchType: 'victim' });
 				}
 			}
 
@@ -61,7 +61,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 				for (const match of matchingSubs) {
 					let colorCode = 5763719; // green
 					const channelId = match.channelId;
-					discord_posts_queue.push({ db, channelId, killmail, zkb, colorCode });
+					discord_posts_queue.push({ db, match, channelId, killmail, zkb, colorCode, matchType: 'attacker' });
 				}
 			}
 
@@ -75,7 +75,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 				for (const match of matchingSubs) {
 					let colorCode = 12092939; // gold
 					const channelId = match.channelId;
-					discord_posts_queue.push({ db, channelId, killmail, zkb, colorCode });
+					discord_posts_queue.push({ db, match, channelId, killmail, zkb, colorCode, matchType: 'isk' });
 				}
 			}
 
@@ -89,7 +89,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 					for (const match of matchingSubs) {
 						let colorCode = 3569059; // dark blue
 						const channelId = match.channelId;
-						discord_posts_queue.push({ db, channelId, killmail, zkb, colorCode });
+						discord_posts_queue.push({ db, match, channelId, killmail, zkb, colorCode, matchType: 'label' });
 					}
 				}
 			}

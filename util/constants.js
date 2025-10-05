@@ -27,6 +27,7 @@ export const LABEL_FILTERS = [
 	"tz:au", "tz:eu", "tz:ru", "tz:use", "tz:usw"
 ];
 
+export const HOURS_24 = 86400;
 export const DAYS_7 = 86400 * 7;
 export const DAYS_90 = 86400 * 90;
 export const ISK_PREFIX = 'isk:', LABEL_PREFIX = 'label:';

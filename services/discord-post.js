@@ -13,7 +13,7 @@ export const discord_posts_queue = [];
 export async function doDiscordPosts(db) {
 	try {
 		while (discord_posts_queue.length > 0) {
-			const { db, channelId, killmail, zkb, colorCode } = discord_posts_queue.shift();
+			const { db, match, channelId, killmail, zkb, colorCode, matchType } = discord_posts_queue.shift();
 
 			// ensure we haven't posted this killmail to this channel yet
 			try {
@@ -29,6 +29,16 @@ export async function doDiscordPosts(db) {
 
 			let embed = await getKillmailEmbeds(db, killmail, zkb, colorCode);
 			postToDiscord(channelId, embed); // lack of await is on purpose
+
+			const matchDoc = {
+				match: match,
+				channelId: channelId,
+				killmail: killmail,
+				zkb: zkb,
+				match_type: matchType,
+				createdAt: new Date()
+			};
+			await db.matches.insertOne(matchDoc)
 			break; // break loops, pause for the interval and then start again
 		}
 	} catch (e) {

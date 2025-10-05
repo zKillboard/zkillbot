@@ -1,5 +1,5 @@
 import { MongoClient } from "mongodb";
-import { DAYS_90 } from "./constants.js";
+import { HOURS_24, DAYS_90 } from "./constants.js";
 
 export async function initMongo(MONGO_URI, MONGO_DB) {
 	const mongo = new MongoClient(MONGO_URI);
@@ -22,7 +22,12 @@ export async function initMongo(MONGO_URI, MONGO_DB) {
 	const information = db.collection("information");
 	await information.createIndex({ type: 1, id: 1 }, { unique: true });
 
+	const matches = db.collection("matches");
+	await matches.createIndex({ killmail_id: 1 });
+	await matches.createIndex({ channelId: 1 });
+	await matches.createIndex({ createdAt: 1 }, { expireAfterSeconds: HOURS_24 });
+
 	console.log("✅ Connected to MongoDB");
 
-	return { db, entities, sentHistory, subsCollection, information };
+	return { db, entities, sentHistory, subsCollection, information, matches };
 }
