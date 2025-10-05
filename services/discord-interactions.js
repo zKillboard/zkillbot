@@ -54,16 +54,21 @@ export async function handleInteractions(client) {
 					flags: EPHERMERAL
 				});
 			}
-		} catch (e) {
-			console.error('command:', sub, '\n', e);
+		} catch (err) {
+			console.error('command:', sub, '\n', err);
 
 			// no await on purpose, don't want to hold up the reply
-			sendWebhook(process.env.DISCORD_ERROR_WEBHOOK, `‼️ ERROR - an error occurred while processing **${sub} command:\n${e}`, false);
-			
-			return interaction.reply({
-				content: "‼️ ERROR - an error occurred while processing your request ‼️",
-				flags: EPHERMERAL
-			});
+			sendWebhook(process.env.DISCORD_ERROR_WEBHOOK, `‼️ ERROR - an error occurred while processing **${sub} command:\n${err}`, false);
+
+			try {
+				return interaction.reply({
+					content: "‼️ ERROR - an error occurred while processing your request ‼️",
+					flags: EPHERMERAL
+				});
+			} catch (innerErr) {
+				// probably already replied
+				console.error('Error sending error message:', innerErr);
+			}
 		}
 	});
 }
