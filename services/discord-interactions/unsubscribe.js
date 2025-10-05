@@ -72,16 +72,16 @@ export async function interaction(db, interaction) {
 async function cleanupSubscriptions(db) {
 	try {
 		// Cleanup any empty label arrays
-		await db.subscriptions.updateMany({ labels: { $size: 0 } }, { $unset: { labels: "" } });
+		await db.subsCollection.updateMany({ labels: { $size: 0 } }, { $unset: { labels: "" } });
 
 		// Cleanup any empty entityId arrays
-		await db.subscriptions.updateMany({ entityIds: { $size: 0 } }, { $unset: { entityIds: 1 } });
+		await db.subsCollection.updateMany({ entityIds: { $size: 0 } }, { $unset: { entityIds: 1 } });
 
 		// Updated empty subscriptions to be cleared after 24 hours
 		// This gives someone a chance to re-add a subscription when they remove the last one,
 		// therefore they don't need to `/zkillbot check` again. 
 		// Only set cleanupAt if it isn't already set, so we don't extend the time indefinitely
-		await db.subscriptions.updateMany(
+		await db.subsCollection.updateMany(
 			{
 				$and: [
 					{ entityIds: { $exists: false } },
@@ -95,7 +95,7 @@ async function cleanupSubscriptions(db) {
 
 		// Delete any subscriptions that have been empty for more than 24 hours
 		// and don't have any existing subscriptions
-		await db.subscriptions.deleteMany({
+		await db.subsCollection.deleteMany({
 			$and: [
 				{ entityIds: { $exists: false } },
 				{ iskValue: { $exists: false } },
@@ -105,7 +105,7 @@ async function cleanupSubscriptions(db) {
 		});
 
 		// unset cleanupAt on any non-empty subscriptions
-		await db.subscriptions.updateMany(
+		await db.subsCollection.updateMany(
 			{
 				$or: [
 					{ entityIds: { $exists: true } },
