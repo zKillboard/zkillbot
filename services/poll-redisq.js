@@ -68,7 +68,9 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			// ISK
 			{
 				const matchingSubs = await db.subsCollection
-					.find({ iskValue: { $lte: zkb.totalValue } })
+					.find({
+						iskValue: { $gte: 100000000, $lte: zkb.totalValue }
+					})
 					.toArray();
 				for (const match of matchingSubs) {
 					let colorCode = 12092939; // gold
@@ -79,13 +81,16 @@ export async function pollRedisQ(db, REDISQ_URL) {
 
 			// Labels
 			{
-				const matchingSubs = await db.subsCollection
-					.find({ labels: { $in: zkb.labels } })
-					.toArray();
-				for (const match of matchingSubs) {
-					let colorCode = 5763719; // green
-					const channelId = match.channelId;
-					discord_posts_queue.push({ db, channelId, killmail, zkb, colorCode });
+				const labels = zkb.labels.filter(Boolean);
+				if (labels.length > 0) { // length of 0 shouldn't happen, but just in case
+					const matchingSubs = await db.subsCollection
+						.find({ labels: { $in: labels } })
+						.toArray();
+					for (const match of matchingSubs) {
+						let colorCode = 3569059; // dark blue
+						const channelId = match.channelId;
+						discord_posts_queue.push({ db, channelId, killmail, zkb, colorCode });
+					}
 				}
 			}
 
