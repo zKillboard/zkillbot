@@ -1,4 +1,4 @@
-import { SEVEN_DAYS, HEADERS } from "../util/constants.js";
+import { DAYS_7, HEADERS } from "../util/constants.js";
 import { getJson, unixtime } from "../util/helpers.js";
 
 import NodeCache from "node-cache";
@@ -13,7 +13,7 @@ const ESI_MAP = {
 
 export async function entityUpdates(db) {
 	try {
-		const oneWeekAgo = unixtime() - SEVEN_DAYS;
+		const oneWeekAgo = unixtime() - DAYS_7;
 
 		const staleEntities = await db.entities
 			.find({ last_updated: { $lt: oneWeekAgo } })

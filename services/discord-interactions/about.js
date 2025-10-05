@@ -44,7 +44,7 @@ export async function interaction(db, interaction) {
 		**Discord Servers:** ${zkillbot_stats.channel_stats.guildCount} \n \
 		**Channels w/ Subs:** ${zkillbot_stats.channel_stats.channelCount} \n \
 		**Subscriptions:** ${zkillbot_stats.channel_stats.totalDocs} \n \
-		**Posts in the last 7 days:** ${zkillbot_stats.post_count_seven_days} \n \
+		**Posts in the last 90 days:** ${zkillbot_stats.post_count_seven_days} \n \
 		**Documentation:** https://zkillboard.com/information/zkillbot/
 		`;
 }
