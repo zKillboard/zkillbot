@@ -35,6 +35,9 @@ export async function pollRedisQ(db, REDISQ_URL) {
 				for (const match of matchingSubs) {
 					let entityIds = match.entityIds.filter(Boolean) || [];
 					if (entityIds.length === 0) continue;
+					// lets validate that victimEntities is actually in entityIds (mistrusting mongo $in)
+					const found = victimEntities.find(e => entityIds.includes(e));
+					if (!found) continue;
 
 					let colorCode = 15548997; // red
 					const channelId = match.channelId;
@@ -65,6 +68,9 @@ export async function pollRedisQ(db, REDISQ_URL) {
 					if (!match.entityIds) continue; // wtf, should never happen, but it does
 					let entityIds = match.entityIds.filter(Boolean) || [];
 					if (entityIds.length === 0) continue;
+					// lets validate that attackerEntities is actually in entityIds (mistrusting mongo $in)
+					const found = attackerEntities.find(e => entityIds.includes(e));
+					if (!found) continue;
 
 					let colorCode = 5763719; // green
 					const channelId = match.channelId;
@@ -80,6 +86,14 @@ export async function pollRedisQ(db, REDISQ_URL) {
 					})
 					.toArray();
 				for (const match of matchingSubs) {
+					// lets validate that zkb.totalValue is actually in the range
+					if (!match.iskValue) continue; // wtf, should never happen, but it does
+					if (isNaN(match.iskValue)) continue;
+					if (zkb.totalValue < 100000000) continue;
+					if (zkb.totalValue < match.iskValue) continue;
+
+					// if we got here, we have a match
+
 					let colorCode = 12092939; // gold
 					const channelId = match.channelId;
 					discord_posts_queue.push({ db, match, channelId, killmail, zkb, colorCode, matchType: 'isk' });
@@ -95,6 +109,9 @@ export async function pollRedisQ(db, REDISQ_URL) {
 				for (const match of matchingSubs) {
 					let labels = match.labels.filter(Boolean) || [];
 					if (labels.length === 0) continue;
+					// lets validate that labels is actually in entityIds (mistrusting mongo $in)
+					const found = labels.find(e => zkb.labels.includes(e));
+					if (!found) continue;
 
 					let colorCode = 3569059; // dark blue
 					const channelId = match.channelId;
