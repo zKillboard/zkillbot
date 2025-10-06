@@ -28,7 +28,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			].map(Number).filter(Boolean);
 
 			// Victims
-			{
+			if (victimEntities.length > 0) {
 				const matchingSubs = await db.subsCollection
 					.find({ entityIds: { $in: victimEntities } })
 					.toArray();
@@ -57,11 +57,12 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			attackerEntities.push(constellation.region_id);
 
 			// Attackers
-			{
+			if (attackerEntities.length > 0) {
 				const matchingSubs = await db.subsCollection
-					.find({ entityIds: { $in: attackerEntities } })
+					.find({ entityIds: { $in: attackerEntities, $exists: true, $ne: [] } })
 					.toArray();
 				for (const match of matchingSubs) {
+					if (!match.entityIds) continue; // wtf, should never happen, but it does
 					let entityIds = match.entityIds.filter(Boolean) || [];
 					if (entityIds.length === 0) continue;
 
@@ -72,7 +73,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			}
 
 			// ISK
-			{
+			if (zkb.totalValue >= 100000000) { // 100m minimum
 				const matchingSubs = await db.subsCollection
 					.find({
 						iskValue: { $gte: 100000000, $lte: zkb.totalValue }
@@ -86,20 +87,18 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			}
 
 			// Labels
-			{
-				const labels = zkb.labels.filter(Boolean);
-				if (labels.length > 0) { // length of 0 shouldn't happen, but just in case
-					const matchingSubs = await db.subsCollection
-						.find({ labels: { $in: labels } })
-						.toArray();
-					for (const match of matchingSubs) {
-						let labels = match.labels.filter(Boolean) || [];
-						if (labels.length === 0) continue;
+			const labels = zkb.labels.filter(Boolean);
+			if (labels.length > 0) { // length of 0 shouldn't happen, but just in case
+				const matchingSubs = await db.subsCollection
+					.find({ labels: { $in: labels, $exists: true, $ne: [] } })
+					.toArray();
+				for (const match of matchingSubs) {
+					let labels = match.labels.filter(Boolean) || [];
+					if (labels.length === 0) continue;
 
-						let colorCode = 3569059; // dark blue
-						const channelId = match.channelId;
-						discord_posts_queue.push({ db, match, channelId, killmail, zkb, colorCode, matchType: 'label' });
-					}
+					let colorCode = 3569059; // dark blue
+					const channelId = match.channelId;
+					discord_posts_queue.push({ db, match, channelId, killmail, zkb, colorCode, matchType: 'label' });
 				}
 			}
 
