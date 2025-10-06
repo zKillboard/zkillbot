@@ -13,7 +13,7 @@ export async function autocomplete(db, interaction) {
 				{ name: `El'Miner (character)`, value: `277137239` },
 				{ name: 'Jita (system)', value: `30000142` },
 				{ name: 'Sabre (ship)', value: `22456` },
-				{ name: 'ISK (currency)', value: 'isk:1000000000' },
+				{ name: 'ISK (>= 1b)', value: 'isk:1000000000' },
 				{ name: 'Highsec', value: 'label:loc:highsec' },
 				{ name: 'Big ISK - Killmails valued over 10b ISK', value: 'label:bigisk' },
 			]);
