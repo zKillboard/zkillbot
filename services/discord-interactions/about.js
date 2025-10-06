@@ -17,20 +17,53 @@ export async function interaction(db, interaction) {
 			{
 				$group: {
 					_id: null,
-					guildIds: { $addToSet: "$guildId" },
 					channelIds: { $addToSet: "$channelId" },
-					totalDocs: { $sum: 1 }
+					totalDocs: { $sum: 1 },
+					iskValueCount: {
+						$sum: { $cond: [{ $ne: [{ $type: "$iskValue" }, "missing"] }, 1, 0] }
+					},
+					labelsCount: {
+						$sum: {
+							$cond: [
+								{ $isArray: "$labels" },
+								{ $size: "$labels" },
+								{ $cond: [{ $ne: [{ $type: "$labels" }, "missing"] }, 1, 0] }
+							]
+						}
+					},
+					entityIdsCount: {
+						$sum: {
+							$cond: [
+								{ $isArray: "$entityIds" },
+								{ $size: "$entityIds" },
+								{ $cond: [{ $ne: [{ $type: "$entityIds" }, "missing"] }, 1, 0] }
+							]
+						}
+					}
 				}
 			},
 			{
 				$project: {
 					_id: 0,
-					guildCount: { $size: "$guildIds" },
 					channelCount: { $size: "$channelIds" },
-					totalDocs: 1
+					totalDocs: 1,
+					iskValueCount: 1,
+					labelsCount: 1,
+					entityIdsCount: 1,
+					summary: {
+						totalFieldCount: {
+							$add: ["$iskValueCount", "$labelsCount", "$entityIdsCount"]
+						},
+						breakdown: {
+							iskValue: "$iskValueCount",
+							labels: "$labelsCount",
+							entityIds: "$entityIdsCount"
+						}
+					}
 				}
 			}
-		]).next()
+		]).next();
+
 
 		const post_count_seven_days = await db.sentHistory.countDocuments();
 		zkillbot_stats = {
@@ -40,11 +73,15 @@ export async function interaction(db, interaction) {
 		stats_cache.set("about_stats", zkillbot_stats);
 	}
 
-	return `**About zKillBot**\n \
-		**Discord Servers:** ${zkillbot_stats.channel_stats.guildCount} \n \
-		**Channels w/ Subs:** ${zkillbot_stats.channel_stats.channelCount} \n \
-		**Subscriptions:** ${zkillbot_stats.channel_stats.totalDocs} \n \
-		**Posts in the last 90 days:** ${zkillbot_stats.post_count_seven_days} \n \
-		**Documentation:** https://zkillboard.com/information/zkillbot/
-		`;
+	return `**About zKillBot**
+**Discord Servers:** ${interaction.client.guilds.cache.size}
+**Channels w/ Subs:** ${zkillbot_stats.channel_stats.channelCount}
+**Subscriptions:** ${zkillbot_stats.channel_stats.totalDocs}
+**Subscription Types:**
+- iskValue: ${zkillbot_stats.channel_stats.iskValueCount}
+- labels: ${zkillbot_stats.channel_stats.labelsCount}
+- entityIds: ${zkillbot_stats.channel_stats.entityIdsCount}
+**Posts (last 7 days):** ${zkillbot_stats.post_count_seven_days}
+**Documentation:** https://zkillboard.com/information/zkillbot/`;
+
 }
