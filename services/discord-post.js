@@ -27,8 +27,8 @@ export async function doDiscordPosts(db) {
 				continue; // loop without waiting
 			}
 
-			let embed = await getKillmailEmbeds(db, killmail, zkb, colorCode);
-			postToDiscord(channelId, embed); // lack of await is on purpose
+			let embed = await getKillmailEmbeds(db, killmail, zkb);
+			postToDiscord(channelId, embed, colorCode); // lack of await is on purpose
 
 			const matchDoc = {
 				match: match,
@@ -50,7 +50,7 @@ export async function doDiscordPosts(db) {
 }
 const embeds_cache = new NodeCache({ stdTTL: 30 });
 
-async function getKillmailEmbeds(db, killmail, zkb, colorCode) {
+async function getKillmailEmbeds(db, killmail, zkb) {
 	let embed = embeds_cache.get(killmail.killmail_id);
 	if (!embed) {
 		const url = `https://zkillboard.com/kill/${killmail.killmail_id}/`;
@@ -96,7 +96,6 @@ async function getKillmailEmbeds(db, killmail, zkb, colorCode) {
 		embed = {
 			title: victim.character_name + (victim.character_name.endsWith('s') ? "' " : "'s ") + victim.ship_type_name,
 			description: description,
-			color: colorCode,
 			thumbnail: { url: image, height: 64, width: 64 },
 			fields: [
 				{ name: "Destroyed", value: `${zkb.destroyedValue.toLocaleString(LOCALE)} ISK`, inline: true },
@@ -117,7 +116,7 @@ async function getKillmailEmbeds(db, killmail, zkb, colorCode) {
 	return embed;
 }
 
-async function postToDiscord(channelId, embed) {
+async function postToDiscord(channelId, embed, colorCode) {
 	try {
 		let remove = false;
 		try {
@@ -132,6 +131,7 @@ async function postToDiscord(channelId, embed) {
 				]);
 
 				if (canSend) {
+					embed.color = colorCode;
 					// @ts-ignore
 					await channel.send({
 						embeds: [embed]
