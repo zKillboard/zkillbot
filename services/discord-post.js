@@ -36,6 +36,7 @@ export async function doDiscordPosts(db) {
 				killmail: killmail,
 				zkb: zkb,
 				match_type: matchType,
+				colorCode: colorCode,
 				createdAt: new Date()
 			};
 			await db.matches.insertOne(matchDoc)
