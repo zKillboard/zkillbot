@@ -7,7 +7,10 @@ import { app_status } from "../util/app-status.js";
 import { client } from "../zkillbot.js";
 import { getSystemNameAndRegion } from "./information.js";
 
+const embeds_cache = new NodeCache({ stdTTL: 30 });
+const post_cache = new NodeCache({ stdTTL: 30 });
 export const discord_posts_queue = [];
+
 export async function doDiscordPosts(db) {
 	try {
 		while (discord_posts_queue.length > 0) {
@@ -26,6 +29,7 @@ export async function doDiscordPosts(db) {
 			}
 
 			const channel = await client.channels.fetch(channelId);
+			// @ts-ignore
 			const guild = channel.guild;
 			const locale = guild?.preferredLocale || "en-US";
 
@@ -51,10 +55,10 @@ export async function doDiscordPosts(db) {
 		setTimeout(doDiscordPosts.bind(null, db), 100);
 	}
 }
-const embeds_cache = new NodeCache({ stdTTL: 30 });
 
 async function getKillmailEmbeds(db, killmail, zkb, locale) {
-	let embed = embeds_cache.get(`${killmail.killmail_id}-${locale}`);
+	const embed_key = `${killmail.killmail_id}-${locale}`;
+	let embed = embeds_cache.get(embed_key);
 	if (!embed) {
 		const url = `https://zkillboard.com/kill/${killmail.killmail_id}/`;
 
@@ -114,7 +118,7 @@ async function getKillmailEmbeds(db, killmail, zkb, locale) {
 			footer: { text: fb.character_name, icon_url: fb_img }
 		};
 
-		embeds_cache.set(killmail.killmail_id, embed);
+		embeds_cache.set(embed_key, embed);
 	}
 	return embed;
 }
