@@ -27,7 +27,7 @@ export async function doDiscordPosts(db) {
 
 			const channel = await client.channels.fetch(channelId);
 			const guild = channel.guild;
-			const locale = 'fr';  //guild?.preferredLocale || "en-US";
+			const locale = guild?.preferredLocale || "en-US";
 
 			let embed = await getKillmailEmbeds(db, killmail, zkb, locale);
 			postToDiscord(channelId, embed, colorCode); // lack of await is on purpose
