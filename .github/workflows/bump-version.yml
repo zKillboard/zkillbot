@@ -3,7 +3,7 @@ name: Bump Version
 on:
   push:
     branches:
-      - main   # or whatever branch you want
+      - main
 
 permissions:
   contents: write
@@ -29,3 +29,9 @@ jobs:
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
           npm version patch -m "ci: bump version to %s [skip ci]"
           git push --follow-tags origin main
+
+      - name: Force-sync deployment branch
+        run: |
+          git fetch origin main
+          git branch -f deployment main
+          git push origin deployment --force
