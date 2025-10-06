@@ -2,12 +2,10 @@ import NodeCache from "node-cache";
 import { PermissionFlagsBits } from "discord.js";
 
 import { getNames, fillNames } from "./information.js";
-import { LOCALE } from "../util/constants.js";
 import { getIDs } from "../util/helpers.js";
 import { app_status } from "../util/app-status.js";
 import { client } from "../zkillbot.js";
 import { getSystemNameAndRegion } from "./information.js";
-
 
 export const discord_posts_queue = [];
 export async function doDiscordPosts(db) {
@@ -27,7 +25,11 @@ export async function doDiscordPosts(db) {
 				continue; // loop without waiting
 			}
 
-			let embed = await getKillmailEmbeds(db, killmail, zkb);
+			const channel = await client.channels.fetch(channelId);
+			const guild = channel.guild;
+			const locale = 'fr';  //guild?.preferredLocale || "en-US";
+
+			let embed = await getKillmailEmbeds(db, killmail, zkb, locale);
 			postToDiscord(channelId, embed, colorCode); // lack of await is on purpose
 
 			const matchDoc = {
@@ -37,6 +39,7 @@ export async function doDiscordPosts(db) {
 				zkb: zkb,
 				match_type: matchType,
 				colorCode: colorCode,
+				locale: locale,
 				createdAt: new Date()
 			};
 			await db.matches.insertOne(matchDoc)
@@ -50,8 +53,8 @@ export async function doDiscordPosts(db) {
 }
 const embeds_cache = new NodeCache({ stdTTL: 30 });
 
-async function getKillmailEmbeds(db, killmail, zkb) {
-	let embed = embeds_cache.get(killmail.killmail_id);
+async function getKillmailEmbeds(db, killmail, zkb, locale) {
+	let embed = embeds_cache.get(`${killmail.killmail_id}-${locale}`);
 	if (!embed) {
 		const url = `https://zkillboard.com/kill/${killmail.killmail_id}/`;
 
@@ -91,19 +94,19 @@ async function getKillmailEmbeds(db, killmail, zkb) {
 
 		const image = `https://images.evetech.net/types/${killmail.victim.ship_type_id}/icon`;
 
-		const description = `${victim.character_name} (${victim_employer}) lost their ${victim.ship_type_name} in ${system}. Final Blow by ${fb.character_name} (${fb_employer})${solo} in their ${fb.ship_type_name}${others}. Total Value: ${zkb.totalValue.toLocaleString(LOCALE)} ISK`;
+		const description = `${victim.character_name} (${victim_employer}) lost their ${victim.ship_type_name} in ${system}. Final Blow by ${fb.character_name} (${fb_employer})${solo} in their ${fb.ship_type_name}${others}. Total Value: ${zkb.totalValue.toLocaleString(locale)} ISK`;
 
 		embed = {
 			title: victim.character_name + (victim.character_name.endsWith('s') ? "' " : "'s ") + victim.ship_type_name,
 			description: description,
 			thumbnail: { url: image, height: 64, width: 64 },
 			fields: [
-				{ name: "Destroyed", value: `${zkb.destroyedValue.toLocaleString(LOCALE)} ISK`, inline: true },
-				{ name: "Dropped", value: `${zkb.droppedValue.toLocaleString(LOCALE)} ISK`, inline: true },
-				{ name: "Fitted", value: `${zkb.fittedValue.toLocaleString(LOCALE)} ISK`, inline: true },
-				{ name: "Involved", value: `${killmail.attackers.length.toLocaleString(LOCALE)}`, inline: true },
-				{ name: "Points", value: `${zkb.points.toLocaleString(LOCALE)}`, inline: true },
-				{ name: "Killmail Value", value: `${zkb.totalValue.toLocaleString(LOCALE)} ISK`, inline: true },
+				{ name: "Destroyed", value: `${zkb.destroyedValue.toLocaleString(locale)} ISK`, inline: true },
+				{ name: "Dropped", value: `${zkb.droppedValue.toLocaleString(locale)} ISK`, inline: true },
+				{ name: "Fitted", value: `${zkb.fittedValue.toLocaleString(locale)} ISK`, inline: true },
+				{ name: "Involved", value: `${killmail.attackers.length.toLocaleString(locale)}`, inline: true },
+				{ name: "Points", value: `${zkb.points.toLocaleString(locale)}`, inline: true },
+				{ name: "Killmail Value", value: `${zkb.totalValue.toLocaleString(locale)} ISK`, inline: true },
 			],
 			timestamp: new Date(killmail.killmail_time),
 			url: url,
