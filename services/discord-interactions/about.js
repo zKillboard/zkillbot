@@ -76,7 +76,6 @@ export async function interaction(db, interaction) {
 	return `**About zKillBot**
 **Discord Servers:** ${interaction.client.guilds.cache.size}
 **Channels w/ Subs:** ${zkillbot_stats.channel_stats.channelCount}
-**Subscriptions:** ${zkillbot_stats.channel_stats.totalDocs}
 **Subscription Types:**
 - iskValue: ${zkillbot_stats.channel_stats.iskValueCount}
 - labels: ${zkillbot_stats.channel_stats.labelsCount}
