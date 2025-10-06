@@ -1,5 +1,5 @@
 import { MongoClient } from "mongodb";
-import { HOURS_24, DAYS_90 } from "./constants.js";
+import { HOURS_24, DAYS_7 } from "./constants.js";
 
 export async function initMongo(MONGO_URI, MONGO_DB) {
 	const mongo = new MongoClient(MONGO_URI);
@@ -12,7 +12,7 @@ export async function initMongo(MONGO_URI, MONGO_DB) {
 
 	const sentHistory = db.collection('subshistory');
 	await sentHistory.createIndex({ channelId: 1, killmail_id: 1 }, { unique: true });
-	await sentHistory.createIndex({ createdAt: 1 }, { expireAfterSeconds: DAYS_90 });
+	await sentHistory.createIndex({ createdAt: 1 }, { expireAfterSeconds: DAYS_7 });
 
 	const subsCollection = db.collection("subscriptions");
 	await subsCollection.createIndex({ entityIds: 1 });
