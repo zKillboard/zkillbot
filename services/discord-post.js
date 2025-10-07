@@ -120,6 +120,9 @@ async function getKillmailEmbeds(db, killmail, zkb, locale) {
 
 		const description = `${victim.character_name} (${victim_employer}) lost their ${victim.ship_type_name} in ${system}. Final Blow by ${fb.character_name} (${fb_employer})${solo} in their ${fb.ship_type_name}${others}. Total Value: ${zkb.totalValue.toLocaleString(locale)} ISK`;
 
+		const involved = solo.length > 0 ? 'Solo' : killmail.attackers.length.toLocaleString(locale);
+		console.log(solo, involved);
+
 		embed = {
 			title: victim.character_name + (victim.character_name.endsWith('s') ? "' " : "'s ") + victim.ship_type_name,
 			description: description,
@@ -128,7 +131,7 @@ async function getKillmailEmbeds(db, killmail, zkb, locale) {
 				{ name: "Destroyed", value: `${zkb.destroyedValue.toLocaleString(locale)} ISK`, inline: true },
 				{ name: "Dropped", value: `${zkb.droppedValue.toLocaleString(locale)} ISK`, inline: true },
 				{ name: "Fitted", value: `${zkb.fittedValue.toLocaleString(locale)} ISK`, inline: true },
-				{ name: "Involved", value: `${killmail.attackers.length.toLocaleString(locale)}`, inline: true },
+				{ name: "Involved", value: `${involved}`, inline: true },
 				{ name: "Points", value: `${zkb.points.toLocaleString(locale)}`, inline: true },
 				{ name: "Killmail Value", value: `${zkb.totalValue.toLocaleString(locale)} ISK`, inline: true },
 			],
