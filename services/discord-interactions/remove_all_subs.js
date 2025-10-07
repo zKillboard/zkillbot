@@ -16,5 +16,5 @@ export async function interaction(db, interaction) {
 	);
 
 	log(interaction, '/remove_all_subs');
-	return '❌ All subscriptions removed from this channel.  To subscribe again please run `/zkillbot check`';
+	return '❌ All subscriptions removed from this channel.';
 }

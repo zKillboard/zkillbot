@@ -1,7 +1,7 @@
 import { ISK_PREFIX, LABEL_PREFIX, LABEL_FILTERS } from "../../util/constants.js";
 import { getNames } from "../information.js";
 import { getFirstString, unixtime } from "../../util/helpers.js";
-import { log } from "../../util/discord.js";
+import { log, check } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = true;
 
@@ -23,7 +23,11 @@ export async function interaction(db, interaction) {
 
 	let doc = await db.subsCollection.findOne({ channelId: channelId });
 	if (!doc || doc.checked != true) {
-		return ' 🛑 Before you subscribe, please run `/zkillbot check` to ensure all permissions are set properly for this channel';
+		console.log('Running check...')
+		let result = await check(db, interaction);
+		if (!result.successfulCheck) {
+			return result.msg;
+		}
 	}
 
 	let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]).toLowerCase();
