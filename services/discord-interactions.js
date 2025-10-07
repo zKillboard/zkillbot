@@ -1,7 +1,14 @@
 import { readdirSync } from "fs";
 import path from "path";
 import { sendWebhook } from "../util/webhook.js";
-import { logInteraction } from "../util/discord.js";
+import { log, logInteraction } from "../util/discord.js";
+import { configOptions, addSetting } from "./discord-interactions/config-channel.js";
+
+import {
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+} from "discord.js";
 
 const EPHERMERAL = 64;
 
@@ -26,7 +33,7 @@ export async function handleInteractions(client) {
 	// --- interaction handling ---
 	client.on("interactionCreate", async (interaction) => {
 		const db = interaction.client.db;
-		const sub = interaction.options.getSubcommand();
+		let sub = null;
 
 		try {
 			if (interaction.isAutocomplete()) {
@@ -35,9 +42,78 @@ export async function handleInteractions(client) {
 				}
 				return;
 			}
+
+			if (interaction.isStringSelectMenu()) {
+				const [prefix, setting] = interaction.customId.split(":"); // e.g., config_header_victim
+				if (prefix !== "config") return;
+
+				const value = interaction.values[0]; 
+				
+				await db.channels.updateOne(
+					{ channelId: interaction.channelId },
+					{ $set: { [setting]: value } },
+					{ upsert: true }
+				);
+
+				logInteraction(db, interaction, `Modified ${setting} to ${value}`);
+				log(interaction, `Modified ${setting} to ${value}`);
+
+				await interaction.deferUpdate();
+				return;
+			}
+
+			// --- pagination for config-channel ---
+			if (interaction.isButton()) {
+				const match = interaction.customId.match(/^config_(next|prev)_(\d+)$/);
+				if (match) {
+					const [, direction, pageStr] = match;
+					let page = Number(pageStr);
+					page = direction === "next" ? page + 1 : page - 1;
+
+					const config = await db.channels.findOne({ channelId: interaction.channelId }) || {};
+					const entries = Object.entries(configOptions);
+					const perPage = 4;
+					const totalPages = Math.ceil(entries.length / perPage);
+
+					const start = page * perPage;
+					const slice = entries.slice(start, start + perPage);
+					const rows = [];
+
+					for (const [key, label] of slice) {
+						addSetting(rows, label, key, config);
+					}
+
+					const nav = new ActionRowBuilder();
+					if (page > 0)
+						nav.addComponents(
+							new ButtonBuilder()
+								.setCustomId(`config_prev_${page}`)
+								.setLabel("⬅️ Back")
+								.setStyle(ButtonStyle.Primary)
+						);
+					if (page < totalPages - 1)
+						nav.addComponents(
+							new ButtonBuilder()
+								.setCustomId(`config_next_${page}`)
+								.setLabel("Next ➡️")
+								.setStyle(ButtonStyle.Primary)
+						);
+					if (nav.components.length) rows.push(nav);
+
+					await interaction.update({
+						content: `Select your configuration options. Page ${page + 1}/${totalPages}.`,
+						components: rows
+					});
+
+					return;
+				}
+			}
+
+
 			if (!interaction.isChatInputCommand()) return;
 			if (interaction.commandName !== "zkillbot") return;
 
+			sub = interaction.options.getSubcommand();
 			if (interactions[sub]) {
 				if (interactions[sub].requiresManageChannelPermission) {
 					const canManageChannel = interaction.channel
@@ -53,10 +129,12 @@ export async function handleInteractions(client) {
 
 				let response = await interactions[sub].interaction(db, interaction);
 				try {
-					return interaction.reply({
-						content: response,
-						flags: EPHERMERAL
-					});
+					if (response !== 'IGNORE') {
+						return interaction.reply({
+							content: response,
+							flags: EPHERMERAL
+						});
+					}
 				} finally {
 					logInteraction(db, interaction, `Running ${sub} command`, interaction.options.data?.options, response); 
 				}

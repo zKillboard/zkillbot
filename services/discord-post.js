@@ -1,5 +1,5 @@
 import NodeCache from "node-cache";
-import { PermissionFlagsBits } from "discord.js";
+import { PermissionFlagsBits, urlSafeCharacters } from "discord.js";
 
 import { getNames, fillNames } from "./information.js";
 import { getIDs } from "../util/helpers.js";
@@ -48,9 +48,13 @@ export async function doDiscordPosts(db) {
 			// @ts-ignore
 			const guild = channel.guild;
 			const locale = guild?.preferredLocale || "en-US";
+			let embeds = await getKillmailEmbeds(db, killmail, zkb, locale);
 
-			let embed = await getKillmailEmbeds(db, killmail, zkb, locale);
-			postToDiscord(channelId, embed, colorCode); // lack of await is on purpose
+			const config = await db.channels.findOne({ channelId: channelId }) || {};
+
+			// adjust the embeds to their preference
+			let cleaned = applyConfigToEmbed(embeds, config);
+			postToDiscord(channelId, cleaned, colorCode); // lack of await is on purpose
 
 			const matchDoc = {
 				match: match,
@@ -169,6 +173,7 @@ async function postToDiscord(channelId, embed, colorCode) {
 			}
 		} catch (err) {
 			if ((err.status >= 400 && err.status <= 499) || (err.code == 50001 || err.code == 10003)) {
+				console.log(err);
 				remove = true;
 			} else {
 				// Something went wrong... keep the error in the logs but don't remove subscriptions just yet
@@ -180,6 +185,55 @@ async function postToDiscord(channelId, embed, colorCode) {
 			console.error(`Removing subscriptions for ${channelId}`);
 		}
 	} catch (e) {
-		console.log(e);
+		console.error(e);
 	}
+}
+
+export function applyConfigToEmbed(embed, config = {}) {
+	// Make a shallow clone so we don’t mutate the original
+	const cleaned = { ...embed };
+
+	// ----- HEADER / AUTHOR -----
+	if (config.header_victim === "hide") {
+		//delete cleaned.title;
+		delete cleaned.author;
+	}
+
+	// ----- DESCRIPTION -----
+	if (config.description === "hide") {
+		cleaned.description = embed.url;
+	}
+
+	// ----- IMAGE / THUMBNAIL -----
+	if (config.image === "hide") {
+		delete cleaned.thumbnail;
+	}
+
+	// ----- FOOTER -----
+	if (config.footer_final_blow === "hide") {
+		delete cleaned.footer;
+	}
+
+	// ----- TIMESTAMP -----
+	if (config.timestamp === "hide") {
+		delete cleaned.timestamp;
+	}
+
+	// ----- FIELDS -----
+	if (Array.isArray(cleaned.fields)) {
+		cleaned.fields = cleaned.fields.filter(field => {
+			const name = field.name.toLowerCase();
+
+			if (config.destroyed === "hide" && name.includes("destroyed")) return false;
+			if (config.dropped === "hide" && name.includes("dropped")) return false;
+			if (config.fitted === "hide" && name.includes("fitted")) return false;
+			if (config.involved === "hide" && name.includes("involved")) return false;
+			if (config.points === "hide" && name.includes("points")) return false;
+			if (config.total_value === "hide" && (name.includes("killmail") || name.includes("value"))) return false;
+
+			return true;
+		});
+	}
+
+	return cleaned;
 }
