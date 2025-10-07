@@ -121,7 +121,6 @@ async function getKillmailEmbeds(db, killmail, zkb, locale) {
 		const description = `${victim.character_name} (${victim_employer}) lost their ${victim.ship_type_name} in ${system}. Final Blow by ${fb.character_name} (${fb_employer})${solo} in their ${fb.ship_type_name}${others}. Total Value: ${zkb.totalValue.toLocaleString(locale)} ISK`;
 
 		const involved = solo.length > 0 ? 'Solo' : killmail.attackers.length.toLocaleString(locale);
-		console.log(solo, involved);
 
 		embed = {
 			title: victim.character_name + (victim.character_name.endsWith('s') ? "' " : "'s ") + victim.ship_type_name,
