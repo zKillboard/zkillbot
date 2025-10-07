@@ -7,7 +7,6 @@ export async function autocomplete(db, interaction) {
 		const value = interaction.options.getString("filter");
 
 		const doc = await db.subsCollection.findOne({ guildId, channelId });
-		console.log(doc);
 		let entityIds = doc?.entityIds || [];
 
 		const names = await getNames(db, entityIds);
