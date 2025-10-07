@@ -51,6 +51,7 @@ export async function leaveServer(db, client, guildId) {
 		await guild.leave();
 		console.log(`leaveServer: Successfully left guild: ${guild.name} (${guild.id})`);
 
+		await db.channels.deleteMany({ guildId: guildId });
 		await db.subsCollection.deleteMany({ guildId: guildId });
 
 		return true;
