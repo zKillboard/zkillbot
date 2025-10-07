@@ -1,6 +1,6 @@
 import { leaveServer } from "../../util/discord.js";
 import { sleep } from "../../util/helpers.js";
-
+import { log } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = true;
 
@@ -26,6 +26,7 @@ export function command(sub) {
 export async function interaction(db, interaction) {
 	try {
 		// If we attempted to leave first then the goodbye message would never be seen
+		log(interaction, '/leave');
 		return GOODBYE;
 	} finally {
 		// pause to let the goodbye msg be seen, then

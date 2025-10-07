@@ -27,7 +27,10 @@ export async function initMongo(MONGO_URI, MONGO_DB) {
 	await matches.createIndex({ channelId: 1 });
 	await matches.createIndex({ createdAt: 1 }, { expireAfterSeconds: HOURS_24 });
 
+	const interactionLogs = db.collection("interactionLogs");
+	await interactionLogs.createIndex({ createdAt: 1 }, { expireAfterSeconds: DAYS_7 });
+
 	console.log("✅ Connected to MongoDB");
 
-	return { db, entities, sentHistory, subsCollection, information, matches };
+	return { db, entities, sentHistory, subsCollection, information, matches, interactionLogs };
 }

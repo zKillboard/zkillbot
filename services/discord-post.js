@@ -18,7 +18,23 @@ export async function doDiscordPosts(db) {
 
 			// ensure we haven't posted this killmail to this channel yet
 			try {
+				const key = `${channelId}-${killmail.killmail_id}`;
+				// check a local cache first to avoid db hits
+				if (post_cache.get(key)) {
+					continue; // already posted recently
+				}
+
+				// check the db in an unobtrusive way
+				const existing = await db.sentHistory.findOne({ channelId: channelId, killmail_id: killmail.killmail_id });
+				if (existing) {
+					post_cache.set(key, true);
+					continue; // already posted
+				}
+
+				// insert a record to ensure we don't post this killmail to this channel again
+				// if this fails with a duplicate key error, we have already posted it before
 				await db.sentHistory.insertOne({ channelId: channelId, killmail_id: killmail.killmail_id, createdAt: new Date() });
+				post_cache.set(key, true);
 			} catch (err) {
 				if (err.code === 11000) {
 					// ⚠️ Duplicate key → already sent to this channel

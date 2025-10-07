@@ -1,3 +1,5 @@
+import { log } from "../../util/discord.js";
+
 export const requiresManageChannelPermission = true;
 
 export function command(sub) {
@@ -28,7 +30,7 @@ export async function interaction(db, interaction) {
 		);
 	}
 
-	console.log(`Checked permissions for channel ${channel.id} in guild ${interaction.guildId}: View(${canView}), Send(${canSend}), Embed(${canEmbed}), TextBased(${isTextBased})`);
+	log(interaction, '/check');
 
 	return [
 		`🔍 Permission check for <#${channel.id}>`,

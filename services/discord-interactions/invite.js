@@ -1,3 +1,5 @@
+import { log } from "../../util/discord.js";
+
 export const requiresManageChannelPermission = false;
 
 export function command(sub) {
@@ -8,6 +10,8 @@ export function command(sub) {
 
 export async function interaction(db, interaction) {
 	const inviteUrl = process.env.INVITE;
+
+	log(interaction, '/invite');
 	
 	return `🔗 Invite me to your server:\n${inviteUrl}`;
 }

@@ -1,4 +1,5 @@
 import { getNames } from "../information.js";
+import { log } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = false;
 
@@ -13,6 +14,8 @@ export async function interaction(db, interaction) {
 
 	const doc = await db.subsCollection.findOne({ guildId, channelId });
 	let entityIds = doc?.entityIds || [];
+
+	log(interaction, '/list');
 
 	// 🔑 resolve IDs to names
 	const names = await getNames(db, entityIds);

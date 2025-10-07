@@ -1,6 +1,7 @@
 import { ISK_PREFIX, LABEL_PREFIX, LABEL_FILTERS } from "../../util/constants.js";
 import { getNames } from "../information.js";
 import { getFirstString, unixtime } from "../../util/helpers.js";
+import { log } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = true;
 
@@ -42,7 +43,7 @@ export async function interaction(db, interaction) {
 			{ upsert: true }
 		);
 
-		console.log(`Subscribed channel ${channelId} in guild ${guildId} to iskValue ${iskValue}`);
+		log(interaction, `/subscribe iskValue >= ${iskValue}`)
 		return `📡 Subscribed this channel to killmails having iskValue of at least ${iskValue}`;
 	} else if (valueRaw.startsWith(LABEL_PREFIX)) {
 		const label_filter = valueRaw.slice(LABEL_PREFIX.length).trim().toLowerCase();
@@ -56,7 +57,7 @@ export async function interaction(db, interaction) {
 			{ upsert: true }
 		);
 
-		console.log(`Subscribed channel ${channelId} in guild ${guildId} to label ${label_filter}`);
+		log(interaction, `/subscribe label ${label_filter}`);
 		return `📡 Subscribed this channel to killmails having label **${label_filter}**`;
 	} else {
 		let entityId = Number(valueRaw);
@@ -101,7 +102,7 @@ export async function interaction(db, interaction) {
 			{ upsert: true }
 		);
 
-		console.log(`Subscribed channel ${channelId} in guild ${guildId} to ${name} (${entityId})`);
+		log(interaction, `/subscribe ${name} (${entityId})`);
 		return `📡 Subscribed this channel to **${name} (${entityId})**`;
 	}
 }

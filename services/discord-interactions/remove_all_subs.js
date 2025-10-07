@@ -1,3 +1,5 @@
+import { log } from "../../util/discord.js";
+
 export const requiresManageChannelPermission = true;
 
 export function command(sub) {
@@ -13,6 +15,6 @@ export async function interaction(db, interaction) {
 		{ guildId, channelId }
 	);
 
-	console.log(`Removed all subscriptions for channel ${channelId} in guild ${guildId}`);
+	log(interaction, '/remove_all_subs');
 	return '❌ All subscriptions removed from this channel.  To subscribe again please run `/zkillbot check`';
 }

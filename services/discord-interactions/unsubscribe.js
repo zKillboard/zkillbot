@@ -1,6 +1,7 @@
 import { ISK_PREFIX, LABEL_PREFIX, LABEL_FILTERS } from "../../util/constants.js";
 import { getFirstString } from "../../util/helpers.js";
 import { getNames } from "../information.js";
+import { log } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = true;
 
@@ -30,7 +31,7 @@ export async function interaction(db, interaction) {
 			);
 
 			if (res.modifiedCount > 0) {
-				console.log(`Unsubscribed channel ${channelId} in guild ${guildId} from iskValue subscription`);
+				log(interaction `/unsubscribe iskValue`);
 				return `❌ Unsubscribed this channel from killmails of a minimum isk value`;
 			} else {
 				return `⚠️ No subscription found for killmails of a minimum isk value`;
@@ -45,7 +46,7 @@ export async function interaction(db, interaction) {
 			);
 
 			if (res.modifiedCount > 0) {
-				console.log(`Unsubscribed channel ${channelId} in guild ${guildId} from label ${label_filter}`);
+				log(interaction, `/unsubscribe label ${label_filter}`);
 				return `❌ Unsubscribed this channel from label **${label_filter}**`;
 			} else {
 				return `⚠️ No subscription found for label **${label_filter}**`;
@@ -65,7 +66,7 @@ export async function interaction(db, interaction) {
 		if (res.modifiedCount > 0) {
 			let names = await getNames(db, [entityId]);
 			let name = names[entityId] || entityId;
-			console.log(`Unsubscribed channel ${channelId} in guild ${guildId} from entityId ${entityId}`);
+			log(interaction, `/unsubscribe entityId ${entityId}`);
 			return `❌ Unsubscribed this channel from **${name} (${entityId})**`;
 		} else {
 			return `⚠️ No subscription found for **${entityId}**`;

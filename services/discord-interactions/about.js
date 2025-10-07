@@ -1,3 +1,5 @@
+import { log } from "../../util/discord.js";
+
 export const requiresManageChannelPermission = false;
 
 import NodeCache from "node-cache";
@@ -64,7 +66,6 @@ export async function interaction(db, interaction) {
 			}
 		]).next();
 
-
 		const post_count_seven_days = await db.sentHistory.countDocuments();
 		zkillbot_stats = {
 			channel_stats,
@@ -72,6 +73,8 @@ export async function interaction(db, interaction) {
 		}
 		stats_cache.set("about_stats", zkillbot_stats);
 	}
+
+	log(interaction, '/about');
 
 	return `**About zKillBot**
 **Discord Servers:** ${interaction.client.guilds.cache.size}

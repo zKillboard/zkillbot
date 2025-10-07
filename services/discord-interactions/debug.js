@@ -1,3 +1,5 @@
+import { log } from "../../util/discord.js";
+
 export const requiresManageChannelPermission = false;
 
 export function command(sub) {
@@ -8,6 +10,8 @@ export function command(sub) {
 
 export async function interaction(db, interaction) {
 	const { guildId, channelId } = interaction;
+
+	log(interaction, '/debug');
 
 	return `guildId: ${guildId}\nchannelId: ${channelId}`;
 }

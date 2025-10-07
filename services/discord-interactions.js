@@ -1,6 +1,7 @@
 import { readdirSync } from "fs";
 import path from "path";
 import { sendWebhook } from "../util/webhook.js";
+import { logInteraction } from "../util/discord.js";
 
 const EPHERMERAL = 64;
 
@@ -50,10 +51,15 @@ export async function handleInteractions(client) {
 					}
 				}
 
-				return interaction.reply({
-					content: await interactions[sub].interaction(db, interaction),
-					flags: EPHERMERAL
-				});
+				let response = await interactions[sub].interaction(db, interaction);
+				try {
+					return interaction.reply({
+						content: response,
+						flags: EPHERMERAL
+					});
+				} finally {
+					logInteraction(db, interaction, `Running ${sub} command`, interaction.options.data?.options, response); 
+				}
 			}
 		} catch (err) {
 			console.error('command:', sub, '\n', err);
