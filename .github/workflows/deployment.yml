@@ -1,0 +1,42 @@
+name: Notify Discord on Deployment Push
+
+on:
+  push:
+    branches:
+      - deployment
+
+jobs:
+  discord-webhook:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Build Discord payload
+        id: payload
+        run: |
+          COMMITS=$(jq -r '.commits[] | "- [`\(.id[0:7])`](\(.url)) **\(.message | gsub("\n"; " "))** — \(.author.name)"' "$GITHUB_EVENT_PATH" | sed ':a;N;$!ba;s/\n/\\n/g')
+          REPO="${GITHUB_REPOSITORY}"
+          BRANCH=$(jq -r .ref "$GITHUB_EVENT_PATH" | sed 's#refs/heads/##')
+          COMPARE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/${{ github.event.before }}...${{ github.sha }}"
+
+          cat <<EOF > payload.json
+          {
+            "embeds": [{
+              "title": "🚀 Deployment Branch Updated",
+              "description": "**Repository:** [${REPO}](${GITHUB_SERVER_URL}/${REPO})\\n**Branch:** \`${BRANCH}\`\\n**Pusher:** ${GITHUB_ACTOR}\\n\\n**Commits:**\\n${COMMITS}\\n\\n[View Changes](${COMPARE_URL})",
+              "color": 5814783,
+              "footer": {
+                "text": "GitHub Actions • Deployment Push"
+              },
+              "timestamp": "$(date --utc +%Y-%m-%dT%H:%M:%SZ)"
+            }]
+          }
+          EOF
+
+          cat payload.json
+          echo "payload=$(cat payload.json)" >> $GITHUB_OUTPUT
+
+      - name: Send to Discord
+        env:
+          WEBHOOK_URL: ${{ secrets.DISCORD_DEPLOYMENT_WEBHOOK }}
+        run: |
+          curl -X POST -H "Content-Type: application/json" -d "@payload.json" "$WEBHOOK_URL"
