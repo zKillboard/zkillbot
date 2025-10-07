@@ -37,8 +37,9 @@ export async function handleInteractions(client) {
 
 		try {
 			if (interaction.isAutocomplete()) {
+				sub = interaction.options.getSubcommand();
 				if (autocompletes[sub]) {
-					autocompletes[sub].autocomplete(db, interaction);
+					await autocompletes[sub].autocomplete(db, interaction);
 				}
 				return;
 			}
