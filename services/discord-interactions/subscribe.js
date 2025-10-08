@@ -23,7 +23,6 @@ export async function interaction(db, interaction) {
 
 	let doc = await db.subsCollection.findOne({ channelId: channelId });
 	if (!doc || doc.checked != true) {
-		console.log('Running check...')
 		let result = await check(db, interaction);
 		if (!result.successfulCheck) {
 			return result.msg;
