@@ -44,8 +44,9 @@ export async function handleInteractions(client) {
 				return;
 			}
 
+			// Handles configurations
 			if (interaction.isStringSelectMenu()) {
-				const [prefix, setting] = interaction.customId.split(":"); // e.g., config_header_victim
+				const [prefix, setting] = interaction.customId.split(":");
 				if (prefix !== "config") return;
 
 				const value = interaction.values[0]; 

@@ -8,7 +8,7 @@ import { sendWebhook } from "./util/webhook.js";
 import { sleep } from "./util/helpers.js";
 
 import dotenv from "dotenv";
-dotenv.config({ quiet: true });
+dotenv.config({ quiet: true, path: new URL("../.env", import.meta.url).pathname });
 
 import { pollRedisQ } from "./services/poll-redisq.js";
 import { entityUpdates } from "./services/information.js";

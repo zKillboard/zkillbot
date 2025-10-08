@@ -1,7 +1,7 @@
 import { SlashCommandBuilder  } from "discord.js";
 import fs from "fs";
 import path from "path";
-const commandsPath = path.join(process.cwd(), "./services/discord-interactions/");
+const commandsPath = path.join(process.cwd(), "./src/services/discord-interactions/");
 
 export async function loadSlashCommands() {
 	const builder = new SlashCommandBuilder()
