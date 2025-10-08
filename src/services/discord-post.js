@@ -14,7 +14,7 @@ export const discord_posts_queue = [];
 export async function doDiscordPosts(db) {
 	try {
 		while (discord_posts_queue.length > 0) {
-			const { db, match, channelId, killmail, zkb, colorCode, matchType } = discord_posts_queue.shift();
+			const { db, match, guildId, channelId, killmail, zkb, colorCode, matchType } = discord_posts_queue.shift();
 
 			// ensure we haven't posted this killmail to this channel yet
 			try {
@@ -33,7 +33,21 @@ export async function doDiscordPosts(db) {
 
 				// insert a record to ensure we don't post this killmail to this channel again
 				// if this fails with a duplicate key error, we have already posted it before
-				await db.sentHistory.insertOne({ channelId: channelId, killmail_id: killmail.killmail_id, createdAt: new Date() });
+				await db.sentHistory.insertOne(
+					{
+						channelId: channelId,
+						killmail_id: killmail.killmail_id,
+						createdAt: new Date()
+					}
+				);
+				await db.guilds.updateOne(
+					{ guildId },
+					{
+						$set: {
+							lastPost: new Date()
+						}
+					}
+				);
 				post_cache.set(key, true);
 			} catch (err) {
 				if (err.code === 11000) {

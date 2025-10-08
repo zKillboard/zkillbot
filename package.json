@@ -4,8 +4,7 @@
 	"type": "module",
 	"main": "zkillbot.js",
 	"scripts": {
-		"start": "node index.js",
-		"zkillbot": "node zkillbot.js",
+		"start": "node src/zkillbot.js",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"keywords": [],

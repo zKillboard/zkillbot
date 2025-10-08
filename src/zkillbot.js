@@ -1,12 +1,13 @@
 #!/usr/bin/env node
-import { GatewayIntentBits, REST, Routes, Subscription } from "discord.js";
+import { GatewayIntentBits, InteractionCallbackResponse, REST, Routes, Subscription } from "discord.js";
 import { ZKILLBOT_DISCORD_CLIENT } from "./classes/zkillbot_discord_client.js";
 import { loadSlashCommands } from "./services/discord-commands.js";
 import { handleInteractions } from "./services/discord-interactions.js";
 import { doDiscordPosts } from "./services/discord-post.js";
 import { sendWebhook } from "./util/webhook.js";
 import { sleep } from "./util/helpers.js";
-
+import fs from "fs";
+import path from "path";
 import dotenv from "dotenv";
 // @ts-ignore
 dotenv.config({ quiet: true, path: new URL("../.env", import.meta.url).pathname });
@@ -17,6 +18,7 @@ import { entityUpdates } from "./services/information.js";
 import "./util/shutdown.js";
 
 import { readFileSync } from "fs";
+import { Db } from "mongodb";
 const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
 const { name, version } = pkg;
 export const ZKILLBOT_VERSION = `${name} v${version}`;
@@ -69,7 +71,7 @@ async function init() {
 			sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, `*${ZKILLBOT_VERSION} activating - acquiring ~~targets~~ killmails*`);
 
 			pollRedisQ(client.db, REDISQ_URL);
-			
+			initCrons(client.db, client)
 		});
 
 		client.login(DISCORD_BOT_TOKEN);
@@ -80,3 +82,12 @@ async function init() {
 	}
 }
 init();
+
+async function initCrons(db, client) {
+	// load and init each cron from the crons directory
+	const crons_path = path.join(process.cwd(), "./src/crons/");
+	for (const file of fs.readdirSync(crons_path).filter(f => f.endsWith(".js"))) {
+		const { init } = await import(`${crons_path}/${file}`);
+		await init(db, client);
+	}
+}
