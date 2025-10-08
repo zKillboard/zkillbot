@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { GatewayIntentBits, InteractionCallbackResponse, REST, Routes, Subscription } from "discord.js";
+import { GatewayIntentBits, REST, Routes } from "discord.js";
 import { ZKILLBOT_DISCORD_CLIENT } from "./classes/zkillbot_discord_client.js";
 import { loadSlashCommands } from "./services/discord-commands.js";
 import { handleInteractions } from "./services/discord-interactions.js";
@@ -79,6 +79,10 @@ async function init() {
 		handleInteractions(client);
 	} catch (err) {
 		console.error("Failed to register commands:", err);
+		if (err.code == 50001) {
+			console.error("Invite the bot back to your server...", process.env.INVITE);			
+		}
+		process.exit(1);
 	}
 }
 init();
