@@ -1,3 +1,5 @@
+import { leaveServer } from "../util/discord.js";
+
 export async function init(db, client) {
 	//console.log('Guild Check cron enabled');
 	setTimeout(addGuilds.bind(null, db, client), 5555);
@@ -36,7 +38,7 @@ async function addGuild(db, guildId) {
 async function cleanupGuilds(db, client) {
 	try {
 		const sixMonthsAgo = new Date();
-		sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() + 1);
+		sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
 		const inactiveGuilds = await db.guilds.find({
 			$or: [
@@ -54,7 +56,8 @@ async function cleanupGuilds(db, client) {
 			]
 		}).toArray();
 		for (const guild of inactiveGuilds) {
-			console.log(guild.guildId, 'is inactive - consider purging');
+			await leaveServer(db, client, guild.guildId);
+			console.log(`cleanupGuilds: Successfully removed ${guild.guildId} for inactivity`);
 		}
 	} catch (err) {
 		console.error(err);

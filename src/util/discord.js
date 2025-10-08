@@ -91,6 +91,7 @@ export async function leaveServer(db, client, guildId) {
 
 		await db.channels.deleteMany({ guildId: guildId });
 		await db.subsCollection.deleteMany({ guildId: guildId });
+		await db.guilds.deleteMany({ guildId: guildId });
 
 		return true;
 	} catch (err) {
