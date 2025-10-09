@@ -27,6 +27,9 @@ export async function entityUpdates(db) {
 		// Sending false will force the names to be updated in the database
 		// thus completing our task of updating stale entities
 		await getNames(db, entityIds, false);
+	} catch (err) {
+		// Downtime can cause issues
+		console.log(err);
 	} finally {
 		setTimeout(entityUpdates.bind(null, db), 111111); // run rougyhly every 111 seconds
 	}
