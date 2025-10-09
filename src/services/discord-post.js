@@ -6,6 +6,7 @@ import { getIDs } from "../util/helpers.js";
 import { app_status } from "../util/app-status.js";
 import { client } from "../zkillbot.js";
 import { getSystemNameAndRegion } from "./information.js";
+import { Db } from "mongodb";
 
 const embeds_cache = new NodeCache({ stdTTL: 30 });
 const post_cache = new NodeCache({ stdTTL: 30 });
@@ -15,6 +16,7 @@ export async function doDiscordPosts(db) {
 	try {
 		while (discord_posts_queue.length > 0) {
 			const { db, match, guildId, channelId, killmail, zkb, colorCode, matchType } = discord_posts_queue.shift();
+			let remove = false;
 
 			// ensure we haven't posted this killmail to this channel yet
 			try {
@@ -58,7 +60,18 @@ export async function doDiscordPosts(db) {
 				continue; // loop without waiting
 			}
 
-			const channel = await client.channels.fetch(channelId);
+			let channel;
+			try {
+				channel = await client.channels.fetch(channelId);
+			} catch (channelErr) {
+				if ((channelErr.status >= 400 && channelErr.status <= 499) || (channelErr.code == 50001 || channelErr.code == 10003)) {
+					console.log(channelErr);
+					await removeSubscriptions(db, channelId);
+				} else {
+					// Something went wrong... keep the error in the logs but don't remove subscriptions just yet
+					console.error(`Failed to send embed to ${channelId}:`, channelErr);
+				}
+			}
 			// @ts-ignore
 			const guild = channel.guild;
 			const locale = guild?.preferredLocale || "en-US";
@@ -68,7 +81,7 @@ export async function doDiscordPosts(db) {
 
 			// adjust the embeds to their preference
 			let cleaned = applyConfigToEmbed(embeds, config);
-			postToDiscord(channelId, cleaned, colorCode); // lack of await is on purpose
+			postToDiscord(db, channelId, cleaned, colorCode); // lack of await is on purpose
 
 			const matchDoc = {
 				match: match,
@@ -159,7 +172,7 @@ async function getKillmailEmbeds(db, killmail, zkb, locale) {
 	return embed;
 }
 
-async function postToDiscord(channelId, embed, colorCode) {
+async function postToDiscord(db, channelId, embed, colorCode) {
 	try {
 		let remove = false;
 		try {
@@ -197,12 +210,16 @@ async function postToDiscord(channelId, embed, colorCode) {
 			}
 		}
 		if (remove) {
-			await client.db.subsCollection.deleteMany({ channelId: channelId });
-			console.error(`Removing subscriptions for ${channelId}`);
+			await removeSubscriptions(db, channelId);
 		}
 	} catch (e) {
 		console.error(e);
 	}
+}
+
+async function removeSubscriptions(db, channelId) {
+	await client.db.subsCollection.deleteMany({ channelId: channelId });
+	console.error(`Removing subscriptions for ${channelId}`);
 }
 
 export function applyConfigToEmbed(embed, config = {}) {
