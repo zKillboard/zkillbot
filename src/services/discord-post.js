@@ -228,13 +228,17 @@ export function applyConfigToEmbed(embed, config = {}) {
 
 	// ----- HEADER / AUTHOR -----
 	if (config.header_victim === "hide") {
-		//delete cleaned.title;
 		delete cleaned.author;
+	}
+
+	// ----- TITLE -----
+	if (config.title === "hide") {
+		delete cleaned.title;
 	}
 
 	// ----- DESCRIPTION -----
 	if (config.description === "hide") {
-		cleaned.description = embed.url;
+		cleaned.description = `[${embed.title}](${embed.url})`;
 	}
 
 	// ----- IMAGE / THUMBNAIL -----

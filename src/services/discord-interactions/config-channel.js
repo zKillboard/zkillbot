@@ -11,6 +11,7 @@ export const requiresManageChannelPermission = true;
 
 export const configOptions = {
 	header_victim: "Victim in Header",
+	title: 'Title',
 	description: "Full Description",
 	image: "Image",
 	destroyed: "Destroyed",
