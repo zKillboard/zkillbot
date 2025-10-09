@@ -31,7 +31,7 @@ export async function interaction(db, interaction) {
 			);
 
 			if (res.modifiedCount > 0) {
-				log(interaction `/unsubscribe iskValue`);
+				log(interaction, `/unsubscribe iskValue`);
 				return `❌ Unsubscribed this channel from killmails of a minimum isk value`;
 			} else {
 				return `⚠️ No subscription found for killmails of a minimum isk value`;
