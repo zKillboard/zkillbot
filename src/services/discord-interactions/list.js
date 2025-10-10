@@ -18,7 +18,11 @@ export async function interaction(db, interaction) {
 	log(interaction, '/list');
 
 	// pull groups out of entityIds for display
-	entityIds = entityIds.filter(id => !id.startsWith('group:')).map(id => Number(id)).filter(Boolean);
+	entityIds = entityIds
+		.map(id => String(id))                       // ensure it's a string
+		.filter(id => !id.startsWith('group:'))      // remove group-prefixed IDs
+		.map(id => Number(id))                       // convert the remaining to numbers
+		.filter(n => !isNaN(n));                     // keep only valid numbers
 
 	// 🔑 resolve IDs to names
 	const names = await getNames(db, entityIds);
@@ -32,13 +36,19 @@ export async function interaction(db, interaction) {
 		lines += '\nlabels: ' + doc.labels.join(', ');
 	}
 
-	// readd groups to entityIds for display
-	const groupIds = (doc?.entityIds || []).filter(id => id.startsWith('group:')).map(id => Number(id.slice(6))).filter(Boolean);
+	// re-add groups to entityIds for display
+	const groupIds = (doc?.entityIds || [])
+		.map(id => String(id))                       // ensure everything is a string
+		.filter(id => id.startsWith('group:'))       // only keep group-prefixed entries
+		.map(id => Number(id.slice(6)))              // extract the number part
+		.filter(n => !isNaN(n));                     // drop invalid numbers
+
 	for (const id of groupIds) {
-		let group = await getInformation(db, 'group', id);
+		const group = await getInformation(db, 'group', id);
 		const name = group?.name || '???';
 		lines += `\n• group:${id} — ${name}`;
 	}
+
 
 	if (lines.length == 0) {
 		return `📋 You have no subscriptions in this channel`;

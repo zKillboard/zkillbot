@@ -10,17 +10,27 @@ export async function autocomplete(db, interaction) {
 		let entityIds = doc?.entityIds || [];
 
 		// Filter out group: prefixes for autocomplete
-		entityIds = entityIds.filter(id => !id.startsWith('group:')).map(id => Number(id)).filter(Boolean);
+		entityIds = (entityIds || [])
+			.map(id => String(id))                       // ensure all are strings
+			.filter(id => !id.startsWith('group:'))      // exclude group-prefixed IDs
+			.map(id => Number(id))                       // convert to numbers
+			.filter(n => !isNaN(n));                     // keep only valid numbers
 
 		const names = await getNames(db, entityIds);
 		const options = [];
 
-		// readd groups to entityIds for display
-		const groupIds = (doc?.entityIds || []).filter(id => id.startsWith('group:')).map(id => Number(id.slice(6))).filter(Boolean);
+		// re-add groups to entityIds for display
+		const groupIds = (doc?.entityIds || [])
+			.map(id => String(id))                       // ensure all are strings
+			.filter(id => id.startsWith('group:'))       // only keep group-prefixed ones
+			.map(id => Number(id.slice(6)))              // extract the numeric portion
+			.filter(Number.isFinite);                    // ignore invalid or NaN values
+
 		for (const id of groupIds) {
-			let group = await getInformation(db, 'group', id);
+			const group = await getInformation(db, 'group', id);
 			names[`group:${id}`] = group?.name || '???';
 		}
+
 
 		for (const id in names) {
 			options.push({ name: `${names[id]} (${id})`, value: `${id}` });
