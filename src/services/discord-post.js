@@ -1,7 +1,7 @@
 import NodeCache from "node-cache";
 import { PermissionFlagsBits, urlSafeCharacters } from "discord.js";
 
-import { getNames, fillNames } from "./information.js";
+import { getNames, fillNames, getSystemDetails } from "./information.js";
 import { getIDs } from "../util/helpers.js";
 import { app_status } from "../util/app-status.js";
 import { client } from "../zkillbot.js";
@@ -116,10 +116,10 @@ async function getKillmailEmbeds(db, killmail, zkb, locale) {
 				break;
 			}
 		}
-		const [names, system] = await Promise.all([
+		const [names] = await Promise.all([
 			getNames(db, [...getIDs(killmail.victim), ...getIDs(final_blow)]),
-			getSystemNameAndRegion(db, killmail.solar_system_id)
 		]);
+		const { system, constellation, region } = await getSystemDetails(db, killmail.solar_system_id);
 
 		const victim = fillNames(names, killmail.victim);
 		let victim_url = `https://zkillboard.com/character/${victim.character_id}/`;
@@ -145,7 +145,7 @@ async function getKillmailEmbeds(db, killmail, zkb, locale) {
 
 		const image = `https://images.evetech.net/types/${killmail.victim.ship_type_id}/icon`;
 
-		const description = `${victim.character_name} (${victim_employer}) lost their ${victim.ship_type_name} in ${system}. Final Blow by ${fb.character_name} (${fb_employer})${solo} in their ${fb.ship_type_name}${others}. Total Value: ${zkb.totalValue.toLocaleString(locale)} ISK`;
+		const description = `${victim.character_name} (${victim_employer}) lost their ${victim.ship_type_name} in ${system.name} (${region.name}). Final Blow by ${fb.character_name} (${fb_employer})${solo} in their ${fb.ship_type_name}${others}. Total Value: ${zkb.totalValue.toLocaleString(locale)} ISK`;
 
 		const involved = solo.length > 0 ? 'Solo' : killmail.attackers.length.toLocaleString(locale);
 
@@ -160,6 +160,9 @@ async function getKillmailEmbeds(db, killmail, zkb, locale) {
 				{ name: "Involved", value: `${involved}`, inline: true },
 				{ name: "Points", value: `${zkb.points.toLocaleString(locale)}`, inline: true },
 				{ name: "Killmail Value", value: `${zkb.totalValue.toLocaleString(locale)} ISK`, inline: true },
+				{ name: "System", value: system.name, inline: true },
+				{ name: "Constellation", value: constellation.name, inline: true },
+				{ name: "Region", value: region.name, inline: true }
 			],
 			timestamp: new Date(killmail.killmail_time),
 			url: url,
@@ -267,6 +270,10 @@ export function applyConfigToEmbed(embed, config = {}) {
 			if (config.involved === "hide" && name.includes("involved")) return false;
 			if (config.points === "hide" && name.includes("points")) return false;
 			if (config.total_value === "hide" && (name.includes("killmail") || name.includes("value"))) return false;
+
+			if (config.system !== 'display' && name.includes("system")) return false;
+			if (config.constellation !== 'display' && name.includes("constellation")) return false;
+			if (config.region !== 'display' && name.includes("region")) return false;
 
 			return true;
 		});
