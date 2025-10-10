@@ -20,9 +20,18 @@ export const configOptions = {
 	involved: "Involved",
 	points: "Points",
 	total_value: "Total Value",
+	system: 'System',
+	constellation: 'Constellation',
+	region: 'Region',
 	footer_final_blow: "Final Blow in Footer",
 	timestamp: "Timestamp"
 };
+
+const defaultValues = {
+	system: 'hide',
+	constellation: 'hide',
+	region: 'hide'
+}
 
 export function command(sub) {
 	return sub
@@ -44,6 +53,7 @@ export async function interaction(db, interaction) {
 		const rows = [];
 
 		for (const [key, label] of slice) {
+			const defaultValue = defaultValues[key] || 'display';
 			addSetting(rows, label, key, config);
 		}
 
@@ -70,8 +80,9 @@ export async function interaction(db, interaction) {
 }
 
 export function addSetting(rows, name, setting, config) {
-	const current = config[setting] || `display`;
-	let displayed = current === 'display' ? 'Displayed' : 'Hidden';
+	const current = config[setting] || (defaultValues[setting] || 'display');
+	const displayed = current === 'display' ? (defaultValues[setting] == 'hide' ? 'Hidden' : 'Displayed') : 'Hidden';
+
 	rows.push(new ActionRowBuilder().addComponents(
 		new StringSelectMenuBuilder()
 			.setCustomId(`config:${setting}`)
