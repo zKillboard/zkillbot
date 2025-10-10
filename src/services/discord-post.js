@@ -221,7 +221,7 @@ async function postToDiscord(db, channelId, embed, colorCode) {
 }
 
 async function removeSubscriptions(db, channelId) {
-	await client.db.subsCollection.deleteMany({ channelId: channelId });
+	await db.subsCollection.deleteMany({ channelId: channelId });
 	console.error(`Removing subscriptions for ${channelId}`);
 }
 
