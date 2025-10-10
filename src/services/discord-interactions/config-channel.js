@@ -20,7 +20,9 @@ export const configOptions = {
 	involved: "Involved",
 	points: "Points",
 	total_value: "Total Value",
-	system: 'System (Region)',
+	system: 'System',
+	constellation: 'Constellation',
+	region: 'Region',
 	footer_final_blow: "Final Blow in Footer",
 	timestamp: "Timestamp"
 };
