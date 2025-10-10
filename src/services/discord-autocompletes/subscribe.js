@@ -45,14 +45,13 @@ export async function autocomplete(db, interaction) {
 		const res = await fetch(`https://zkillboard.com/cache/1hour/autocomplete/?query=${valueRaw}`);
 		let suggestions = (await res.json()).suggestions;
 
-		// we will add groups, but omitting for now
 		suggestions = suggestions.filter(
-			s => !s.value.includes("(Closed)") && s.data.type != "group" && !s.value.includes("(recycled)")
+			s => !s.value.includes("(Closed)") && !s.value.includes("(recycled)")
 		);
 
 		const choices = suggestions.map(s => ({
 			name: `${s.value} (${s.data.type})`, // what shows in the dropdown
-			value: `${s.data.id}`               // what gets sent back if selected
+			value: s.data.type === "group" ? `group:${s.data.id}` : `${s.data.id}` // handle group IDs
 		}));
 		await interaction.respond(choices.slice(0, 25));
 	} catch (err) {

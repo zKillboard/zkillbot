@@ -1,5 +1,5 @@
 import { ISK_PREFIX, LABEL_PREFIX, LABEL_FILTERS } from "../../util/constants.js";
-import { getNames } from "../information.js";
+import { getInformation, getNames } from "../information.js";
 import { getFirstString, unixtime } from "../../util/helpers.js";
 import { log, check } from "../../util/discord.js";
 
@@ -62,6 +62,26 @@ export async function interaction(db, interaction) {
 
 		log(interaction, `/subscribe label ${label_filter}`);
 		return `📡 Subscribed this channel to killmails having label **${label_filter}**`;
+	} else if (valueRaw.startsWith("group:")) { 
+		let entityId = Number(valueRaw.slice(6).trim());
+		if (Number.isNaN(entityId)) {
+			return ` ❌ Unable to subscribe... **${valueRaw}** is not a valid group id`;
+		}
+
+		let group = await getInformation(db, 'group', entityId); // ensure it exists in information
+		if (!group) {
+			return ` ❌ Unable to subscribe... **${valueRaw}** is not a valid group id`;
+		}
+		const name = group.name || '???';
+
+		await db.subsCollection.updateOne(
+			{ guildId, channelId },
+			{ $addToSet: { entityIds: `group:${entityId}` } },
+			{ upsert: true }
+		);
+
+		log(interaction, `/subscribe ${name} (group:${entityId})`);
+		return `📡 Subscribed this channel to **${name} (group:${entityId})**`;
 	} else {
 		let entityId = Number(valueRaw);
 		if (Number.isNaN(entityId)) {

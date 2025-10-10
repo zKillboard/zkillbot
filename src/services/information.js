@@ -9,6 +9,9 @@ const ESI_MAP = {
 	'system': `https://esi.evetech.net/universe/systems/:id`,
 	'constellation': `https://esi.evetech.net/universe/constellations/:id`,
 	'region': `https://esi.evetech.net/universe/regions/:id`,
+	'type': `https://esi.evetech.net/universe/types/:id`,
+	'group': `https://esi.evetech.net/universe/groups/:id`,
+	'category': `https://esi.evetech.net/universe/categories/:id`,
 }
 
 export async function entityUpdates(db) {
@@ -131,6 +134,25 @@ export async function getSystemDetails(db, solar_system_id) {
 	const constellation = await getInformation(db, 'constellation', system.constellation_id);
 	const region = await getInformation(db, 'region', constellation.region_id);
 	return { system, constellation, region };
+}
+
+export async function getShipGroup(db, type_id) {
+	const type = await getInformation(db, 'type', type_id);
+	if (!type) return null;
+	if (!type.group_id) return null;
+	const group = await getInformation(db, 'group', type.group_id);
+	return group;
+}
+
+export async function getShipCategory(db, type_id) {
+	const type = await getInformation(db, 'type', type_id);
+	if (!type) return null;
+	if (!type.group_id) return null;
+	const group = await getInformation(db, 'group', type.group_id);
+	if (!group) return null;
+	if (!group.category_id) return null;
+	const category = await getInformation(db, 'category', group.category_id);
+	return category;
 }
 
 export async function getInformation(db, type, id) {

@@ -1,6 +1,6 @@
 import { HEADERS } from "../util/constants.js";
 import { app_status } from "../util/app-status.js";
-import { getSystemDetails } from "./information.js";
+import { getShipGroup, getSystemDetails } from "./information.js";
 import { discord_posts_queue } from "./discord-post.js";
 
 export async function pollRedisQ(db, REDISQ_URL) {
@@ -26,6 +26,13 @@ export async function pollRedisQ(db, REDISQ_URL) {
 				killmail.victim.character_id,
 				killmail.victim.ship_type_id
 			].map(Number).filter(Boolean);
+
+			// Add ship group
+			const shipGroup = await getShipGroup(db, killmail.victim.ship_type_id);
+			if (shipGroup) {
+				// @ts-ignore
+				victimEntities.push(`group:${shipGroup.id}`);
+			}			
 
 			// Victims
 			if (victimEntities.length > 0) {
@@ -53,6 +60,15 @@ export async function pollRedisQ(db, REDISQ_URL) {
 				...killmail.attackers.map(a => a.character_id),
 				...killmail.attackers.map(a => a.ship_type_id)
 			].map(Number).filter(Boolean);
+
+			// Add ship groups
+			for (const attacker of killmail.attackers) {
+				const shipGroup = await getShipGroup(db, attacker.ship_type_id);
+				if (shipGroup) {
+					// @ts-ignore
+					attackerEntities.push(`group:${shipGroup.id}`);
+				}
+			}
 
 			const { system, constellation } = await getSystemDetails(db, killmail.solar_system_id);
 			attackerEntities.push(zkb.locationID);

@@ -1,4 +1,4 @@
-import { getNames } from "../information.js";
+import { getInformation, getNames } from "../information.js";
 
 export async function autocomplete(db, interaction) {
 	const { guildId, channelId } = interaction;
@@ -9,8 +9,18 @@ export async function autocomplete(db, interaction) {
 		const doc = await db.subsCollection.findOne({ guildId, channelId });
 		let entityIds = doc?.entityIds || [];
 
+		// Filter out group: prefixes for autocomplete
+		entityIds = entityIds.filter(id => !id.startsWith('group:')).map(id => Number(id)).filter(Boolean);
+
 		const names = await getNames(db, entityIds);
 		const options = [];
+
+		// readd groups to entityIds for display
+		const groupIds = (doc?.entityIds || []).filter(id => id.startsWith('group:')).map(id => Number(id.slice(6))).filter(Boolean);
+		for (const id of groupIds) {
+			let group = await getInformation(db, 'group', id);
+			names[`group:${id}`] = group?.name || '???';
+		}
 
 		for (const id in names) {
 			options.push({ name: `${names[id]} (${id})`, value: `${id}` });

@@ -1,6 +1,6 @@
 import { ISK_PREFIX, LABEL_PREFIX, LABEL_FILTERS } from "../../util/constants.js";
 import { getFirstString } from "../../util/helpers.js";
-import { getNames } from "../information.js";
+import { getInformation, getNames } from "../information.js";
 import { log } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = true;
@@ -50,6 +50,27 @@ export async function interaction(db, interaction) {
 				return `❌ Unsubscribed this channel from label **${label_filter}**`;
 			} else {
 				return `⚠️ No subscription found for label **${label_filter}**`;
+			}
+		}
+
+		if (valueRaw.startsWith('group:')) {
+			const entityId = Number(valueRaw.slice(6));
+			if (Number.isNaN(entityId)) {
+				return ` ❌ Unable to unsubscribe... **${valueRaw}** is not a valid group id`;
+			}
+
+			const res = await db.subsCollection.updateOne(
+				{ guildId, channelId },
+				{ $pull: { entityIds: `group:${entityId}` } }
+			);
+
+			if (res.modifiedCount > 0) {
+				let group = await getInformation(db, 'group', entityId);
+				let name = group?.name || '???';
+				log(interaction, `/unsubscribe group:${entityId}`);
+				return `❌ Unsubscribed this channel from **${name} (group:${entityId})**`;
+			} else {
+				return `⚠️ No subscription found for **group:${entityId}**`;
 			}
 		}
 

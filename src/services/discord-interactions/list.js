@@ -1,4 +1,4 @@
-import { getNames } from "../information.js";
+import { getInformation, getNames } from "../information.js";
 import { log } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = false;
@@ -17,6 +17,9 @@ export async function interaction(db, interaction) {
 
 	log(interaction, '/list');
 
+	// pull groups out of entityIds for display
+	entityIds = entityIds.filter(id => !id.startsWith('group:')).map(id => Number(id)).filter(Boolean);
+
 	// 🔑 resolve IDs to names
 	const names = await getNames(db, entityIds);
 	let lines = (entityIds || [])
@@ -28,6 +31,15 @@ export async function interaction(db, interaction) {
 	if (doc?.labels && doc?.labels?.length > 0) {
 		lines += '\nlabels: ' + doc.labels.join(', ');
 	}
+
+	// readd groups to entityIds for display
+	const groupIds = (doc?.entityIds || []).filter(id => id.startsWith('group:')).map(id => Number(id.slice(6))).filter(Boolean);
+	for (const id of groupIds) {
+		let group = await getInformation(db, 'group', id);
+		const name = group?.name || '???';
+		lines += `\n• group:${id} — ${name}`;
+	}
+
 	if (lines.length == 0) {
 		return `📋 You have no subscriptions in this channel`;
 	}
