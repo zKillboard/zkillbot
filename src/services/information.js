@@ -1,5 +1,5 @@
 import { DAYS_7, HEADERS } from "../util/constants.js";
-import { getJson, unixtime } from "../util/helpers.js";
+import { getJson, isIterable, unixtime } from "../util/helpers.js";
 
 import NodeCache from "node-cache";
 const info_cache = new NodeCache({ stdTTL: 900 });
@@ -69,18 +69,22 @@ export async function getNames(db, entityIds, use_cache = true) {
 	if (needs_lookup.length > 0) {
 		const json = await doNamesLookup(needs_lookup);
 
-		// add fetched names into cache
-		for (const e of json) {
-			if (e.category === 'unknown') continue;
+		if (isIterable(json)) {
+			// add fetched names into cache
+			for (const e of json) {
+				if (e.category === 'unknown') continue;
 
-			if (use_cache) names_cache.set(e.id, e.name);
-			await db.entities.updateOne({
-				entity_id: e.id
-			}, {
-				$set: { name: e.name, last_updated: unixtime() }
-			},
-				{ upsert: true }
-			);
+				if (use_cache) names_cache.set(e.id, e.name);
+				await db.entities.updateOne({
+					entity_id: e.id
+				}, {
+					$set: { name: e.name, last_updated: unixtime() }
+				},
+					{ upsert: true }
+				);
+			}
+		} else {
+			console.error("getNames: Unexpected response from ESI:\n", needs_lookup, '\nJSON response:', json);
 		}
 	}
 
