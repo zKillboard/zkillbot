@@ -1,5 +1,5 @@
 import { DAYS_7, HEADERS } from "../util/constants.js";
-import { getJson, isIterable, unixtime } from "../util/helpers.js";
+import { getJson, unixtime } from "../util/helpers.js";
 
 import NodeCache from "node-cache";
 const info_cache = new NodeCache({ stdTTL: 900 });
@@ -69,7 +69,7 @@ export async function getNames(db, entityIds, use_cache = true) {
 	if (needs_lookup.length > 0) {
 		const json = await doNamesLookup(needs_lookup);
 
-		if (isIterable(json)) {
+		try {
 			// add fetched names into cache
 			for (const e of json) {
 				if (e.category === 'unknown') continue;
@@ -83,8 +83,8 @@ export async function getNames(db, entityIds, use_cache = true) {
 					{ upsert: true }
 				);
 			}
-		} else {
-			console.error("getNames: Unexpected response from ESI:\n", needs_lookup, '\nJSON response:', json);
+		} catch (e) {
+			console.error("Error updating names in database:", e, json);
 		}
 	}
 

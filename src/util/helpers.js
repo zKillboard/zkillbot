@@ -40,8 +40,3 @@ export async function getJsonCached(url) {
 	}
 	return value;
 }
-
-export function isIterable(ojbect) {
-	const isIterable = ojbect => ojbect != null && typeof ojbect[Symbol.iterator] === 'function';
-	return isIterable;
-}
