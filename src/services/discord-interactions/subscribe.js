@@ -121,7 +121,11 @@ export async function interaction(db, interaction) {
 
 		await db.entities.updateOne(
 			{ entity_id: entityId, name: name },
-			{ $setOnInsert: { last_updated: unixtime() } },
+			{
+				$setOnInsert: {
+					createdAt: new Date()
+				}
+			},
 			{ upsert: true }
 		);
 

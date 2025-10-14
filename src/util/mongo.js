@@ -8,7 +8,11 @@ export async function initMongo(MONGO_URI, MONGO_DB) {
 
 	const entities = db.collection('entities');
 	await entities.createIndex({ entity_id: 1 });
-	await entities.createIndex({ last_updated: 1 });
+	await entities.createIndex({ createdAt: 1 }, { expireAfterSeconds: DAYS_7 });
+	await entities.updateMany(
+		{ createdAt: { $exists: false } },
+		{ $set: { createdAt: new Date() } }
+	);
 
 	const sentHistory = db.collection('subshistory');
 	await sentHistory.createIndex({ channelId: 1, killmail_id: 1 }, { unique: true });

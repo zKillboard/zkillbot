@@ -13,7 +13,6 @@ import dotenv from "dotenv";
 dotenv.config({ quiet: true, path: new URL("../.env", import.meta.url).pathname });
 
 import { pollRedisQ } from "./services/poll-redisq.js";
-import { entityUpdates } from "./services/information.js";
 
 import "./util/shutdown.js";
 
@@ -61,8 +60,6 @@ async function init() {
 
 			const { initMongo } = await import("./util/mongo.js"); // await here!
 			client.db = await initMongo(MONGO_URI, MONGO_DB);
-
-			entityUpdates(client.db);
 
 			if (process.env.NODE_ENV !== "development") {
 				// allow previous instances of zKillBot to finish

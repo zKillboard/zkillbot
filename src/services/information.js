@@ -14,30 +14,6 @@ const ESI_MAP = {
 	'category': `https://esi.evetech.net/universe/categories/:id`,
 }
 
-export async function entityUpdates(db) {
-	try {
-		const oneWeekAgo = unixtime() - DAYS_7;
-
-		const staleEntities = await db.entities
-			.find({ last_updated: { $lt: oneWeekAgo } })
-			.limit(1000)
-			.toArray();
-
-		if (staleEntities.length == 0) return;
-
-		const entityIds = staleEntities.map(e => e.entity_id);
-
-		// Sending false will force the names to be updated in the database
-		// thus completing our task of updating stale entities
-		await getNames(db, entityIds, false);
-	} catch (err) {
-		// Downtime can cause issues
-		console.log(err);
-	} finally {
-		setTimeout(entityUpdates.bind(null, db), 111111); // run rougyhly every 111 seconds
-	}
-}
-
 /**
  * Retrieves the names for a list of entity IDs, using a cache and database lookup as needed.
  *
@@ -78,7 +54,10 @@ export async function getNames(db, entityIds, use_cache = true) {
 				await db.entities.updateOne({
 					entity_id: e.id
 				}, {
-					$set: { name: e.name, last_updated: unixtime() }
+					$set: {
+						name: e.name,
+						createdAt: new Date()
+					}
 				},
 					{ upsert: true }
 				);
@@ -184,7 +163,6 @@ export async function getInformation(db, type, id) {
 	if (info) {
 		info.type = type;
 		info.id = id;
-		info.last_updated = unixtime();
 		await db.information.updateOne(
 			{ type: type, id: id },
 			{ $set: info },
