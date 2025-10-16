@@ -72,6 +72,10 @@ export async function doDiscordPosts(db) {
 					console.error(`Failed to send embed to ${channelId}:`, channelErr);
 				}
 			}
+			if (!channel) {
+				continue; // channel not found, skip
+			}
+			
 			// @ts-ignore
 			const guild = channel.guild;
 			const locale = guild?.preferredLocale || "en-US";
