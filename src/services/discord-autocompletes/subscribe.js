@@ -1,4 +1,6 @@
+import { app_status } from "../../util/app-status.js";
 import { ISK_PREFIX, LABEL_PREFIX, SUGGESTION_LABEL_FILTERS, LABEL_FILTERS } from "../../util/constants.js";
+import { sleep } from "../../util/helpers.js";
 
 export async function autocomplete(db, interaction) {
 	try {
@@ -42,8 +44,22 @@ export async function autocomplete(db, interaction) {
 			return interaction.respond(choices.slice(0, 25));
 		}
 
-		const res = await fetch(`https://zkillboard.com/cache/1hour/autocomplete/?query=${valueRaw}`);
-		let suggestions = (await res.json()).suggestions;
+		let suggestions = [], invalid, invalid_count = 0;
+		do {
+			invalid = false;
+			const res = await fetch(`https://zkillboard.com/cache/1hour/autocomplete/?query=${valueRaw}`);
+			let raw = await res.text();
+			if (raw.startsWith("<")) { // invalid json response
+				invalid = true;
+				invalid_count++;
+				if (invalid_count >= 5) {
+					break; // give up after 5 tries
+				}
+				await sleep(400);
+			} else {
+				suggestions = (JSON.parse(raw)).suggestions;
+			}
+		} while (invalid);
 
 		suggestions = suggestions.filter(
 			s => !s.value.includes("(Closed)") && !s.value.includes("(recycled)")
