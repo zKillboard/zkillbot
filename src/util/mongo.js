@@ -1,5 +1,5 @@
 import { MongoClient } from "mongodb";
-import { HOURS_24, DAYS_7 } from "./constants.js";
+import { HOURS_24, DAYS_3, DAYS_7 } from "./constants.js";
 
 export async function initMongo(MONGO_URI, MONGO_DB) {
 	const mongo = new MongoClient(MONGO_URI);
@@ -8,7 +8,7 @@ export async function initMongo(MONGO_URI, MONGO_DB) {
 
 	const entities = db.collection('entities');
 	await entities.createIndex({ entity_id: 1 });
-	await entities.createIndex({ createdAt: 1 }, { expireAfterSeconds: DAYS_7 });
+	await entities.createIndex({ createdAt: 1 }, { expireAfterSeconds: DAYS_3 });
 	await entities.updateMany(
 		{ createdAt: { $exists: false } },
 		{ $set: { createdAt: new Date() } }
@@ -16,7 +16,7 @@ export async function initMongo(MONGO_URI, MONGO_DB) {
 
 	const sentHistory = db.collection('subshistory');
 	await sentHistory.createIndex({ channelId: 1, killmail_id: 1 }, { unique: true });
-	await sentHistory.createIndex({ createdAt: 1 }, { expireAfterSeconds: DAYS_7 });
+	await sentHistory.createIndex({ createdAt: 1 }, { expireAfterSeconds: DAYS_3 });
 
 	const subsCollection = db.collection("subscriptions");
 	await subsCollection.createIndex({ entityIds: 1 });
@@ -36,7 +36,7 @@ export async function initMongo(MONGO_URI, MONGO_DB) {
 	await channels.createIndex({ channelId: 1 }, { unique: true });
 
 	const interactionLogs = db.collection("interactionLogs");
-	await interactionLogs.createIndex({ createdAt: 1 }, { expireAfterSeconds: DAYS_7 });
+	await interactionLogs.createIndex({ createdAt: 1 }, { expireAfterSeconds: HOURS_24 });
 
 	const guilds = db.collection("guilds");
 	await guilds.createIndex({ guildId: 1 }, { unique: true });
