@@ -1,14 +1,12 @@
 import NodeCache from "node-cache";
-import { PermissionFlagsBits, urlSafeCharacters } from "discord.js";
+import { PermissionFlagsBits } from "discord.js";
 
 import { getNames, fillNames, getSystemDetails } from "./information.js";
 import { getIDs } from "../util/helpers.js";
 import { app_status } from "../util/app-status.js";
 import { client } from "../zkillbot.js";
-import { getSystemNameAndRegion } from "./information.js";
-import { Db } from "mongodb";
+import { config } from "dotenv";
 
-const embeds_cache = new NodeCache({ stdTTL: 30 });
 const post_cache = new NodeCache({ stdTTL: 30 });
 export const discord_posts_queue = [];
 
@@ -75,13 +73,12 @@ export async function doDiscordPosts(db) {
 			if (!channel) {
 				continue; // channel not found, skip
 			}
-			
+
 			// @ts-ignore
 			const guild = channel.guild;
 			const locale = guild?.preferredLocale || "en-US";
-			let embeds = await getKillmailEmbeds(db, killmail, zkb, locale);
-
 			const config = await db.channels.findOne({ channelId: channelId }) || {};
+			let embeds = await getKillmailEmbeds(db, config, killmail, zkb, locale);
 
 			// adjust the embeds to their preference
 			let cleaned = applyConfigToEmbed(embeds, config);
@@ -107,76 +104,76 @@ export async function doDiscordPosts(db) {
 	}
 }
 
-async function getKillmailEmbeds(db, killmail, zkb, locale) {
-	const embed_key = `${killmail.killmail_id}-${locale}`;
-	let embed = embeds_cache.get(embed_key);
-	if (!embed) {
-		const url = `https://zkillboard.com/kill/${killmail.killmail_id}/`;
+async function getKillmailEmbeds(db, config, killmail, zkb, locale) {
+	const url = `https://zkillboard.com/kill/${killmail.killmail_id}/`;
 
-		let final_blow = killmail.attackers[0]; // default to first
-		for (let attacker of killmail.attackers) {
-			if (attacker.final_blow) {
-				final_blow = attacker;
-				break;
-			}
+	let final_blow = killmail.attackers[0]; // default to first
+	for (let attacker of killmail.attackers) {
+		if (attacker.final_blow) {
+			final_blow = attacker;
+			break;
 		}
-		const [names] = await Promise.all([
-			getNames(db, [...getIDs(killmail.victim), ...getIDs(final_blow)]),
-		]);
-		const { system, constellation, region } = await getSystemDetails(db, killmail.solar_system_id);
-
-		const victim = fillNames(names, killmail.victim);
-		let victim_url = `https://zkillboard.com/character/${victim.character_id}/`;
-		let victim_img = `https://images.evetech.net/characters/${victim.character_id}/portrait?size=64`;
-		if (!victim.character_name) {
-			victim.character_name = victim.corporation_name;
-			victim_url = `https://zkillboard.com/corporation/${victim.corporation_id}/`;
-			victim_img = `https://images.evetech.net/corporations//${victim.corporation_id}/logo?size=64`;
-		}
-		const victim_employer = victim.alliance_name ?? victim.corporation_name;
-
-		const fb = fillNames(names, final_blow);
-		let fb_img = `https://images.evetech.net/characters/${fb.character_id}/portrait?size=64`;
-		if (!fb.character_name) {
-			fb.character_name = fb.corporation_name;
-			fb_img = `https://images.evetech.net/corporations//${fb.corporation_id}/logo?size=64`;
-		}
-		if (!fb.character_name) fb.character_name = 'an NPC';
-		const fb_employer = fb.alliance_name ?? (fb.corporation_name ?? (fb.faction_name ?? '???'));
-		const solo = zkb.labels.indexOf('solo') > -1 ? ', solo, ' : '';
-		const attacker_count = killmail.attackers.length - 1;
-		const others = attacker_count > 0 ? ' along with ' + attacker_count + ' other ' + (solo.length > 0 ? 'NPC' : 'pilot') + (attacker_count > 1 ? 's' : '') : '';
-
-		const image = `https://images.evetech.net/types/${killmail.victim.ship_type_id}/icon`;
-
-		const description = `${victim.character_name} (${victim_employer}) lost their ${victim.ship_type_name} in ${system.name} (${region.name}). Final Blow by ${fb.character_name} (${fb_employer})${solo} in their ${fb.ship_type_name}${others}. Total Value: ${zkb.totalValue.toLocaleString(locale)} ISK`;
-
-		const involved = solo.length > 0 ? 'Solo' : killmail.attackers.length.toLocaleString(locale);
-
-		embed = {
-			title: victim.character_name + (victim.character_name.endsWith('s') ? "' " : "'s ") + victim.ship_type_name,
-			description: description,
-			thumbnail: { url: image, height: 64, width: 64 },
-			fields: [
-				{ name: "Destroyed", value: `${zkb.destroyedValue.toLocaleString(locale)} ISK`, inline: true },
-				{ name: "Dropped", value: `${zkb.droppedValue.toLocaleString(locale)} ISK`, inline: true },
-				{ name: "Fitted", value: `${zkb.fittedValue.toLocaleString(locale)} ISK`, inline: true },
-				{ name: "Involved", value: `${involved}`, inline: true },
-				{ name: "Points", value: `${zkb.points.toLocaleString(locale)}`, inline: true },
-				{ name: "Killmail Value", value: `${zkb.totalValue.toLocaleString(locale)} ISK`, inline: true },
-				{ name: "System", value: system.name, inline: true },
-				{ name: "Constellation", value: constellation.name, inline: true },
-				{ name: "Region", value: region.name, inline: true }
-			],
-			timestamp: new Date(killmail.killmail_time),
-			url: url,
-			author: { name: victim.character_name, icon_url: victim_img, url: victim_url },
-			footer: { text: fb.character_name, icon_url: fb_img }
-		};
-
-		embeds_cache.set(embed_key, embed);
 	}
-	return embed;
+	const [names] = await Promise.all([
+		getNames(db, [...getIDs(killmail.victim), ...getIDs(final_blow)]),
+	]);
+	const { system, constellation, region } = await getSystemDetails(db, killmail.solar_system_id);
+
+	const victim = fillNames(names, killmail.victim);
+	let victim_url = `https://zkillboard.com/character/${victim.character_id}/`;
+	let victim_img = `https://images.evetech.net/characters/${victim.character_id}/portrait?size=64`;
+	if (!victim.character_name) {
+		victim.character_name = victim.corporation_name;
+		victim_url = `https://zkillboard.com/corporation/${victim.corporation_id}/`;
+		victim_img = `https://images.evetech.net/corporations//${victim.corporation_id}/logo?size=64`;
+	}
+	const victim_employer = victim.alliance_name ? linkify(victim, config, 'alliance', 'alliance_id', 'alliance_name') : linkify(victim, config, 'corporation', 'corporation_id', 'corporation_name');
+
+	const fb = fillNames(names, final_blow);
+	let fb_img = `https://images.evetech.net/characters/${fb.character_id}/portrait?size=64`;
+	if (!fb.character_name) {
+		fb.character_name = fb.corporation_name;
+		fb_img = `https://images.evetech.net/corporations//${fb.corporation_id}/logo?size=64`;
+	}
+	if (!fb.character_name) fb.character_name = 'an NPC';
+	const fb_employer = fb.alliance_name ? linkify(fb, config, 'alliance', 'alliance_id', 'alliance_name') : linkify(fb, config, 'corporation', 'corporation_id', 'corporation_name');
+	const solo = zkb.labels.indexOf('solo') > -1 ? ', solo, ' : '';
+	const attacker_count = killmail.attackers.length - 1;
+	const others = attacker_count > 0 ? ' along with ' + attacker_count + ' other ' + (solo.length > 0 ? 'NPC' : 'pilot') + (attacker_count > 1 ? 's' : '') : '';
+
+	const image = `https://images.evetech.net/types/${killmail.victim.ship_type_id}/icon`;
+
+	const victim_link = linkify(victim, config, 'character', 'character_id', 'character_name');
+	const victim_ship_link = linkify(victim, config, 'ship', 'ship_type_id', 'ship_type_name');
+	const fb_link = linkify(fb, config, 'character', 'character_id', 'character_name');
+	const fb_ship_link = linkify(fb, config, 'ship', 'ship_type_id', 'ship_type_name');
+	const system_link = linkify(system, config, 'system', 'system_id', 'name');
+	const region_link = linkify(region, config,	 'region', 'region_id', 'name');
+
+	const description = `**${victim_link}** (_${victim_employer}_) lost their **${victim_ship_link}** in **${system_link}** (_${region_link}_). Final Blow by **${fb_link}** (_${fb_employer}_)${solo} in their **${fb_ship_link}**${others}. Total Value: ${zkb.totalValue.toLocaleString(locale)} ISK`;
+
+	const involved = solo.length > 0 ? 'Solo' : killmail.attackers.length.toLocaleString(locale);
+
+	return {
+		title: victim.character_name + (victim.character_name.endsWith('s') ? "' " : "'s ") + victim.ship_type_name,
+		description: description,
+		thumbnail: { url: image, height: 64, width: 64 },
+		fields: [
+			{ name: "Destroyed", value: `${zkb.destroyedValue.toLocaleString(locale)} ISK`, inline: true },
+			{ name: "Dropped", value: `${zkb.droppedValue.toLocaleString(locale)} ISK`, inline: true },
+			{ name: "Fitted", value: `${zkb.fittedValue.toLocaleString(locale)} ISK`, inline: true },
+			{ name: "Involved", value: `${involved}`, inline: true },
+			{ name: "Points", value: `${zkb.points.toLocaleString(locale)}`, inline: true },
+			{ name: "Killmail Value", value: `${zkb.totalValue.toLocaleString(locale)} ISK`, inline: true },
+			{ name: "System", value: system.name, inline: true },
+			{ name: "Constellation", value: constellation.name, inline: true },
+			{ name: "Region", value: region.name, inline: true }
+		],
+		timestamp: new Date(killmail.killmail_time),
+		url: url,
+		author: { name: victim.character_name, icon_url: victim_img, url: victim_url },
+		footer: { text: fb.character_name, icon_url: fb_img }
+	};
 }
 
 async function postToDiscord(db, channelId, embed, colorCode) {
@@ -285,4 +282,16 @@ export function applyConfigToEmbed(embed, config = {}) {
 	}
 
 	return cleaned;
+}
+
+function linkify(object, config, type, idField = 'id', nameField = 'name') {
+	const id = object[idField] || 0;
+	const name = object[nameField] || '???';
+	
+	if ((config[`linkify_${type}`] || 'hide') === 'hide') {
+		return name;
+	}
+
+	const url = `https://zkillboard.com/${type}/${id}/`;
+	return `[${name}](<${url}>)`;
 }

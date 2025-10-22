@@ -24,13 +24,25 @@ export const configOptions = {
 	constellation: 'Constellation',
 	region: 'Region',
 	footer_final_blow: "Final Blow in Footer",
-	timestamp: "Timestamp"
+	timestamp: "Timestamp",
+	linkify_character: "Character Links",
+	linkify_corporation: "Corporation Links",
+	linkify_alliance: "Alliance Links",
+	linkify_ship: "Ship Links",
+	linkify_system: "System Links",
+	linkify_region: "Region Links",
 };
 
 const defaultValues = {
 	system: 'hide',
 	constellation: 'hide',
-	region: 'hide'
+	region: 'hide',
+	linkify_character: 'hide',
+	linkify_corporation: 'hide',
+	linkify_alliance: 'hide',
+	linkify_ship: 'hide',
+	linkify_system: 'hide',
+	linkify_region: 'hide',
 }
 
 export function command(sub) {
