@@ -5,7 +5,6 @@ import { getNames, fillNames, getSystemDetails } from "./information.js";
 import { getIDs } from "../util/helpers.js";
 import { app_status } from "../util/app-status.js";
 import { client } from "../zkillbot.js";
-import { config } from "dotenv";
 
 const post_cache = new NodeCache({ stdTTL: 30 });
 export const discord_posts_queue = [];
