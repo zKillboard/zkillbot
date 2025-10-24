@@ -17,7 +17,10 @@ import { pollRedisQ } from "./services/poll-redisq.js";
 import "./util/shutdown.js";
 
 import { readFileSync } from "fs";
+// @ts-ignore
 import { Db } from "mongodb";
+// @ts-ignore
+import { error } from "console";
 const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
 const { name, version } = pkg;
 export const ZKILLBOT_VERSION = `${name} v${version}`;
@@ -93,12 +96,20 @@ async function initCrons(db, client) {
 	}
 }
 
-process.on('uncaughtException', (err) => {
+/* Discord is throwing exceptions outside the promise chain, catch them here */
+process.on('uncaughtException', async (err) => {
+	// @ts-ignore
+	if (err.code === 10008 || err.code == 40060) {
+		console.warn('⚠️ Ignored uncaught Discord exception:', err.message);
+		return; // Unknown Message, can be ignored
+	}
 	console.error('🔥 Uncaught Exception:', err);
-	process.kill(process.pid, 'SIGTERM');
+	await sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, `**${ZKILLBOT_VERSION} encountered an uncaught exception.**`);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', async (reason, promise) => {
 	console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+	await sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, `**${ZKILLBOT_VERSION} encountered an unhandled promise rejection and is shutting down.**`);
+	// send sigterm to app for graceful shutdown
 	process.kill(process.pid, 'SIGTERM');
 });
