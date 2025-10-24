@@ -115,6 +115,14 @@ export async function handleInteractions(client) {
 			if (!interaction.isChatInputCommand()) return;
 			if (interaction.commandName !== "zkillbot") return;
 
+			// Prevent interactions in Discord threads
+			if (interaction.channel.isThread()) {
+				return interaction.reply({
+					content: "❌ zKillBot commands cannot be used in threads. Please use commands in the main channel instead.",
+					flags: EPHERMERAL
+				});
+			}
+
 			sub = interaction.options.getSubcommand();
 			if (interactions[sub]) {
 				const shouldDefer = interactions[sub].shouldDefer || false;
