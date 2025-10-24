@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>zKillBot - Discord Bot for EVE Online Killmails</title>
+    <link rel="icon" type="image/png" href="https://zkillboard.com/img/zkillboard-logo.png">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #2c2f33 0%, #36393f 50%, #23272a 100%);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            color: white;
+            position: relative;
+        }
+        .navbar {
+            background: rgba(22, 27, 34, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #30363d;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        .navbar-brand {
+            font-weight: 600;
+            font-size: 1.4rem;
+        }
+        .zkillboard-logo {
+            width: 32px;
+            height: 32px;
+            margin-right: 10px;
+            border-radius: 6px;
+        }
+        .card {
+            background: rgba(33, 38, 45, 0.8);
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            color: #e6edf3;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+        .card-text, .card p, .card li {
+            color: #e6edf3;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #5865F2, #7289da);
+            border: none;
+            color: #ffffff;
+            font-weight: 500;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(88, 101, 242, 0.3);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #4752c4, #5865F2);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(88, 101, 242, 0.4);
+            color: #ffffff;
+        }
+        .btn-outline-light {
+            color: #e6edf3;
+            border: 2px solid #e6edf3;
+            font-weight: 500;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .btn-outline-light:hover {
+            background-color: #5865F2;
+            border-color: #5865F2;
+            color: #ffffff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(88, 101, 242, 0.3);
+        }
+
+        /* Discord Invite Button Styling */
+        .btn-discord {
+            background: linear-gradient(135deg, #5b209a, #7c3aed);
+            border: none;
+            color: #ffffff;
+            font-weight: 500;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(91, 32, 154, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .btn-discord:hover {
+            background: linear-gradient(135deg, #4a1a85, #5b209a);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(91, 32, 154, 0.4);
+            color: #ffffff;
+        }
+        .btn-lg {
+            padding: 16px 32px;
+            font-size: 1.1rem;
+        }
+        .code-block {
+            background: linear-gradient(135deg, #161b22 0%, #1c2128 100%);
+            border: 1px solid #30363d;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+            color: #e6edf3;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        .code-block::before {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: 16px;
+            width: 12px;
+            height: 12px;
+            background: #ff5f56;
+            border-radius: 50%;
+            box-shadow: 20px 0 0 #ffbd2e, 40px 0 0 #27ca3f;
+        }
+        .code-block code {
+            margin-top: 20px;
+            display: block;
+        }
+        code {
+            background: rgba(22, 27, 34, 0.8);
+            color: #79c0ff;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .hero-section {
+            background: linear-gradient(135deg, #5865F2 0%, #7289da 50%, #4752c4 100%);
+            padding: 80px 0;
+            margin-bottom: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.15"/><circle cx="10" cy="90" r="0.5" fill="white" opacity="0.15"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+        .feature-icon {
+            font-size: 3rem;
+            color: #5865F2;
+            margin-bottom: 1.5rem;
+            text-shadow: 0 2px 10px rgba(88, 101, 242, 0.4);
+        }
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            text-align: center;
+            padding: 2rem;
+            height: 100%;
+        }
+
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(88, 101, 242, 0.4);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(88, 101, 242, 0.2);
+        }
+
+        .step-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+
+        .step-card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #5865F2, #7289da);
+            color: white;
+            border-radius: 50%;
+            font-size: 1.25rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 15px rgba(88, 101, 242, 0.4);
+        }
+        /* Enhanced card styling */
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Ensure all text is visible */
+        h1, h2, h3, h4, h5, h6 {
+            color: #e6edf3;
+        }
+        p, li, ul, ol {
+            color: #e6edf3;
+        }
+        .small {
+            color: #8b949e;
+        }
+        a {
+            color: #58a6ff;
+        }
+        a:hover {
+            color: #79c0ff;
+        }
+        .alert-info {
+            background-color: #0d1117;
+            border-color: #238636;
+            color: #e6edf3;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <img src="logo.png" alt="zKillBot" style="height: 32px; margin-right: 10px;">
+                zKillBot
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                                        <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#getting-started">Getting Started</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#invite">Invite</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#commands">Commands</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#channel-config">Configuration</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#labels">Labels</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#support">Support</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="hero-section text-center text-white">
+        <div class="container hero-content">
+            <img src="logo.png" alt="zKillBot" style="width: 80px; height: 80px; margin-bottom: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h1 class="display-3 fw-bold mb-4" style="text-shadow: 0 2px 20px rgba(0,0,0,0.5);">zKillBot</h1>
+            <p class="lead mb-5" style="font-size: 1.3rem; font-weight: 300; max-width: 600px; margin: 0 auto;">Real-time EVE Online killmail notifications powered by zKillboard, delivered directly to your Discord server.</p>
+            
+            <a href="https://discord.com/oauth2/authorize?client_id=1422039566721876069&permissions=2048&integration_type=0&scope=bot+applications.commands" class="btn btn-discord btn-lg me-3" target="_blank" rel="noopener noreferrer">
+                <i class="bi bi-discord me-2"></i>Invite zKillBot to your Discord Server
+            </a>
+            
+        </div>
+    </div>
+    
+    <style>
+        body { padding-top: 76px; } /* Account for fixed navbar */
+    </style>
+
+    <div class="container">
+        <!-- Features Section -->
+        <div class="row mb-5">
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="card-body">
+                        <i class="bi bi-lightning-fill feature-icon"></i>
+                        <h4 class="mb-3">Real-time Updates</h4>
+                        <p class="card-text">Receive killmails as they happen using zKillboard's RedisQ stream with minimal latency.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="card-body">
+                        <i class="bi bi-funnel-fill feature-icon"></i>
+                        <h4 class="mb-3">Flexible Filters</h4>
+                        <p class="card-text">Subscribe to specific characters, corporations, alliances, systems, or ISK values with precise control.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card feature-card h-100">
+                    <div class="card-body">
+                        <i class="bi bi-gear-fill feature-icon"></i>
+                        <h4 class="mb-3">Customizable</h4>
+                        <p class="card-text">Highly configurable settings for your killmail notifications.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Getting Started Section -->
+        <section id="getting-started" class="mb-5">
+            <div class="text-center mb-5">
+                <h2 class="mb-5">Getting Started</h2>
+                <div class="row">
+                    <div class="col-md-6 col-lg-3 mb-4">
+                        <div class="step-card">
+                            <div class="step-number">1</div>
+                            <h5>Invite the Bot</h5>
+                            <p>Use the <a href="https://discord.com/oauth2/authorize?client_id=1422039566721876069&permissions=2048&integration_type=0&scope=bot+applications.commands"
+								target="_blank" rel="noopener noreferrer">invite link</a> to add zKillBot to your Discord server</p>
+                        </div>
+                    </div>
+					<div class="col-md-6 col-lg-3 mb-4">
+						<div class="step-card">
+							<div class="step-number">2</div>
+							<h5>Subscribe</h5>
+							<p>Use <code>subscribe</code> to add your first killmail filters</p>
+						</div>
+					</div>
+                    <div class="col-md-6 col-lg-3 mb-4">
+                        <div class="step-card">
+                            <div class="step-number">3</div>
+                            <h5>Configure Channel</h5>
+                            <p>Run <code>config-channel</code> to view and customize the channel settings</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3 mb-4">
+                        <div class="step-card">
+                            <div class="step-number">4</div>
+                            <h5>Repeat</h5>
+                            <p>Add as many filters as you'd like!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Invite Section -->
+        <section id="invite" class="mb-5">
+            <div class="card">
+                <div class="card-body text-center">
+                    <h2 class="card-title mb-4">Invite zKillBot</h2>
+                    <p class="card-text mb-4">Click here to invite the bot to your server (you must have the <strong>Manage Server</strong> permission!):</p>
+                    <a class="btn btn-discord btn-lg" href="https://discord.com/oauth2/authorize?client_id=1422039566721876069&permissions=2048&integration_type=0&scope=bot+applications.commands" target="_blank" rel="noopener noreferrer">
+                        <i class="bi bi-discord"></i> <strong>Invite zKillBot to your Discord Server</strong>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Commands Section -->
+        <section id="commands" class="mb-5">
+            <h2 class="mb-4">Commands</h2>
+            <p class="mb-4">All commands are available as Discord slash commands (<code>/command</code>).</p>
+            <p class="mb-4">
+                <span class="badge bg-info">🌐 Available to everyone</span>
+                <span class="badge bg-warning">🔒 Requires Manage Channels permission</span>
+            </p>
+
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">/zkillbot about</h5>
+                            <p class="card-text">🌐 Reports various statistics about zKillBot.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">/zkillbot check</h5>
+                            <p class="card-text">🔒 Verifies the current channel's permissions to ensure zKillBot can post messages here. <strong>This command must be run successfully before any subscriptions can be added.</strong></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">/zkillbot config-channel</h5>
+                            <p class="card-text">🔒 Customize which fields are displayed in killmail notifications and configure entity links. <a href="#channel-config">See detailed configuration options below.</a></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">/zkillbot invite</h5>
+                            <p class="card-text">🌐 Returns the bot's <a href="https://discord.com/oauth2/authorize?client_id=1422039566721876069&permissions=2048&integration_type=0&scope=bot+applications.commands"
+								target="_blank" rel="noopener noreferrer">invite link</a>.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">/zkillbot leave</h5>
+                            <p class="card-text">🔒 Removes all subscriptions and instructs zKillBot to leave the server.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">/zkillbot list</h5>
+                            <p class="card-text">🌐 List all current subscriptions in the channel.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">/zkillbot remove_all_subs</h5>
+                            <p class="card-text">🔒 Remove all subscriptions for the current channel.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">/zkillbot subscribe</h5>
+                            <p class="card-text">🔒 Subscribes the current channel to killmails from:</p>
+                            <ul class="small">
+                                <li>Character, corporation, alliance</li>
+                                <li>Location, system, constellation, region</li>
+                                <li>Ship (typeId) or ship's group</li>
+                                <li>ISK: Minimum ISK value (100m+)</li>
+                                <li>Label: Specific labels (see labels section)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Subscribe Examples</h5>
+                    <div class="code-block">
+# Character<br>
+/zkillbot subscribe CCP Stroopwafel<br><br>
+
+# Corporation<br>
+/zkillbot subscribe eve university<br><br>
+
+# Alliance (by ID)<br>
+/zkillbot subscribe 434243723<br><br>
+
+# System (Jita)<br>
+/zkillbot subscribe 30000142<br><br>
+
+# ISK minimum value<br>
+/zkillbot subscribe isk:1000000000<br><br>
+
+# Labels<br>
+/zkillbot subscribe label:ganked
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">/zkillbot unsubscribe</h5>
+                    <p class="card-text">🔒 Removes a subscription from the current channel.</p>
+                    <div class="code-block">
+/zkillbot unsubscribe 670<br>
+/zkillbot unsubscribe isk<br>
+/zkillbot unsubscribe label:ganked
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Channel Configuration Section -->
+        <section id="channel-config" class="mb-5">
+            <h2 class="mb-4">Channel Configuration</h2>
+            <p class="mb-4">Use <code>/zkillbot config-channel</code> to customize your killmail notifications. This powerful command allows you to control both what information is displayed and how entities are linked.</p>
+            
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-toggles me-2" style="color: #5865F2;"></i>Display Options</h5>
+                            <p class="card-text">Toggle visibility of these killmail fields:</p>
+                            <ul class="small">
+                                <li><strong>Header</strong> - Victim name with portrait and zKillboard link</li>
+                                <li><strong>Description</strong> - Kill summary text</li>
+                                <li><strong>Ship Image</strong> - Visual representation of the destroyed ship</li>
+                                <li><strong>Values</strong> - Destroyed/Dropped/Fitted ISK amounts</li>
+                                <li><strong>Statistics</strong> - Involved pilots/Points/Total value</li>
+                                <li><strong>Location</strong> - System/Constellation/Region information</li>
+                                <li><strong>Footer</strong> - Final blow entity details</li>
+                                <li><strong>Timestamp</strong> - When the kill occurred</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6 mb-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-link-45deg me-2" style="color: #5865F2;"></i>Entity Linking</h5>
+                            <p class="card-text">Configure clickable links for entities in killmails:</p>
+                            <ul class="small">
+                                <li><strong>Character Links</strong> - Link pilot names to their zKillboard profiles</li>
+                                <li><strong>Corporation Links</strong> - Link corp names to zKillboard corp pages</li>
+                                <li><strong>Alliance Links</strong> - Link alliance names to zKillboard alliance pages</li>
+                                <li><strong>System/Region Links</strong> - Link system/region names to zKillboard system/region pages</li>
+                                <li><strong>Ship Links</strong> - Link ship types to zKillboard ship pages</li>
+                            </ul>
+                            <div class="alert alert-info mt-3">
+                                <small><i class="bi bi-info-circle me-1"></i>Entity links make it easy to quickly access detailed information about any pilot, corporation, alliance, system, region, or ship mentioned in the killmail.</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Notes Section -->
+        <section id="notes" class="mb-5">
+            <h2 class="mb-4">Important Notes</h2>
+            <div class="card">
+                <div class="card-body">
+                    <ul>
+                        <li>zKillBot uses RedisQ to stream killmails from zKillBoard in near real-time.</li>
+                        <li>If a name query matches multiple results, zKillBot will list the IDs so you can subscribe by ID or refine your search.</li>
+                        <li>A channel may have multiple subscriptions.</li>
+                        <li>Each killmail will only be posted once per channel, even if it matches multiple subscriptions.</li>
+                        <li>Subscriptions are per-channel, meaning different channels can track different entities.</li>
+                        <li>Each channel can have a different display configuration.</li>
+                        <li>Killmails include links back to <a href="https://zkillboard.com/" target="_blank">zKillboard</a> for full details.</li>
+                        <li>ISK values are adjusted to your guild's locale setting.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Labels Section -->
+        <section id="labels" class="mb-5">
+            <h2 class="mb-4">Valid Labels</h2>
+            <div class="card">
+                <div class="card-body">
+                    <div class="code-block">
+#:1, #:10+, #:100+, #:1000+, #:2+, #:25+, #:5+, #:50+,<br>
+atShip, awox, bigisk, capital,<br>
+cat:11, cat:18, cat:22, cat:23, cat:350001, cat:40, cat:46, cat:6, cat:65, cat:87,<br>
+concord, extremeisk, ganked, insaneisk,<br>
+isk:100b+, isk:10b+, isk:1b+, isk:1t+, isk:5b+, isk:1t+<br>
+loc:abyssal, loc:drifter, loc:highsec, loc:lowsec, loc:nullsec, loc:w-space,<br>
+npc, padding, pvp, solo,<br>
+tz:au, tz:eu, tz:ru, tz:use, tz:usw
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Upcoming Features Section -->
+        <section id="upcoming" class="mb-5">
+            <h2 class="mb-4">Upcoming Features</h2>
+            <div class="card">
+                <div class="card-body">
+                    <ul>
+                        <li>LOCALE implementation for language (ISK values already implemented)</li>
+                        <li>Fine-grained filters for precise control over subscriptions. E.g. kills/losses only, or specific ship type of minimal isk value, etc.</li>
+                        <li>Subscribe to a system and receive killmails within a chosen jump range or light-year distance</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Support Section -->
+        <section id="support" class="mb-5">
+            <h2 class="mb-4">Support & Links</h2>
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <i class="bi bi-discord feature-icon"></i>
+                            <h5 class="card-title">Discord Support</h5>
+                            <p class="card-text">For issues or feature requests, join the zKillboard Discord.</p>
+                            <a href="https://discord.gg/sV2kkwg8UD" class="btn btn-primary" target="_blank">
+                                <i class="bi bi-discord"></i> Join Discord
+                            </a>
+                            <p class="small mt-2">Visit channel <code>#discord-zkillbot</code></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <i class="bi bi-github feature-icon"></i>
+                            <h5 class="card-title">Source Code</h5>
+                            <p class="card-text">The source for zKillBot is available on GitHub.</p>
+                            <a href="https://github.com/zKillboard/zkillbot" class="btn btn-outline-light" target="_blank">
+                                <i class="bi bi-github"></i> View on GitHub
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center py-5 mt-5" style="background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(30, 30, 30, 0.9)); border-top: 1px solid rgba(255, 255, 255, 0.1);">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <img src="logo.png" alt="zKillBot" style="height: 40px; opacity: 0.7; margin-bottom: 1rem;">
+                    <p class="mb-2" style="font-size: 1.1rem; font-weight: 500;">&copy; 2025 zKillBot</p>
+                    <p class="mb-3" style="color: rgba(255,255,255,0.7);">Built for the EVE Online community by Squizz Caphinator</p>
+                    <p class="small mb-0" style="color: rgba(255,255,255,0.5);">
+                        EVE Online and all related materials are property of CCP Games. 
+                    </p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
