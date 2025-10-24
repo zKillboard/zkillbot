@@ -4,6 +4,7 @@ import { getFirstString, unixtime } from "../../util/helpers.js";
 import { log, check } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = true;
+export const shouldDefer = true; // API calls to zkillboard.com and database operations
 
 export function command(sub) {
 	return sub

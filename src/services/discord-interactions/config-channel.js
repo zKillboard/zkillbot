@@ -8,6 +8,7 @@ import {
 import { logInteraction } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = true;
+export const shouldDefer = false; // Uses interaction.reply() directly and returns 'IGNORE'
 
 export const configOptions = {
 	header_victim: "Victim in Header",

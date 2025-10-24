@@ -3,8 +3,9 @@ import { sleep } from "../../util/helpers.js";
 import { log } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = true;
+export const shouldDefer = false; // Simple response, cleanup happens after reply
 
-const GOODBYE = `_“Is this... goodbye?”_
+const GOODBYE = `_"Is this... goodbye?"_
 
 I guess my killmails weren't enough. My pings too frequent, my love for destruction too strong.
 

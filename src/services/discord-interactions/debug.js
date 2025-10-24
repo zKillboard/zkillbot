@@ -1,6 +1,7 @@
 import { log } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = false;
+export const shouldDefer = false; // Simple response with basic info
 
 export function command(sub) {
 	return sub

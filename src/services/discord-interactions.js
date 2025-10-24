@@ -117,6 +117,8 @@ export async function handleInteractions(client) {
 
 			sub = interaction.options.getSubcommand();
 			if (interactions[sub]) {
+				const shouldDefer = interactions[sub].shouldDefer || false;
+
 				if (interactions[sub].requiresManageChannelPermission) {
 					const canManageChannel = interaction.channel
 						.permissionsFor(interaction.member)
@@ -129,13 +131,24 @@ export async function handleInteractions(client) {
 					}
 				}
 
+				// Defer the response for potentially slow operations
+				if (shouldDefer) {
+					await interaction.deferReply({ flags: EPHERMERAL });
+				}
+
 				let response = await interactions[sub].interaction(db, interaction);
 				try {
 					if (response !== 'IGNORE') {
-						return interaction.reply({
-							content: response,
-							flags: EPHERMERAL
-						});
+						if (shouldDefer) {
+							return interaction.editReply({
+								content: response,
+							});
+						} else {
+							return interaction.reply({
+								content: response,
+								flags: EPHERMERAL
+							});
+						}
 					}
 				} finally {
 					logInteraction(db, interaction, `Running ${sub} command`, interaction.options.data?.options, response); 
@@ -148,12 +161,21 @@ export async function handleInteractions(client) {
 			sendWebhook(process.env.DISCORD_ERROR_WEBHOOK, `‼️ ERROR - an error occurred while processing **${sub} command:\n${err}`, false);
 
 			try {
-				return interaction.reply({
-					content: "‼️ ERROR - an error occurred while processing your request ‼️",
-					flags: EPHERMERAL
-				});
+				const errorMessage = "‼️ ERROR - an error occurred while processing your request ‼️";
+				
+				// Check if the interaction was deferred
+				if (interaction.deferred) {
+					return interaction.editReply({
+						content: errorMessage,
+					});
+				} else {
+					return interaction.reply({
+						content: errorMessage,
+						flags: EPHERMERAL
+					});
+				}
 			} catch (innerErr) {
-				// probably already replied
+				// probably already replied or interaction timed out
 				console.error('Error sending error message:', innerErr);
 			}
 		}

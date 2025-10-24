@@ -1,6 +1,7 @@
 import { log } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = false;
+export const shouldDefer = true; // Complex aggregation queries
 
 import NodeCache from "node-cache";
 const stats_cache = new NodeCache({ stdTTL: 900 });

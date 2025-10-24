@@ -2,6 +2,7 @@ import { getInformation, getNames } from "../information.js";
 import { log } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = false;
+export const shouldDefer = true; // Multiple database queries and name resolution
 
 export function command(sub) {
 	return sub

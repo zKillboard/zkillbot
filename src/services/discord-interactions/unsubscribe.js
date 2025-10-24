@@ -4,6 +4,7 @@ import { getInformation, getNames } from "../information.js";
 import { log } from "../../util/discord.js";
 
 export const requiresManageChannelPermission = true;
+export const shouldDefer = true; // Database operations and cleanup functions
 
 export function command(sub) {
 	return sub
