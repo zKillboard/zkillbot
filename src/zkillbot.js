@@ -92,3 +92,13 @@ async function initCrons(db, client) {
 		await init(db, client);
 	}
 }
+
+process.on('uncaughtException', (err) => {
+	console.error('🔥 Uncaught Exception:', err);
+	process.kill(process.pid, 'SIGTERM');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+	console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+	process.kill(process.pid, 'SIGTERM');
+});
