@@ -83,7 +83,7 @@ export async function doDiscordPosts(db) {
 			let cleaned = applyConfigToEmbed(embeds, config);
 			postToDiscord(db, channelId, cleaned, colorCode); // lack of await is on purpose
 
-			const matchDoc = {
+			/*const matchDoc = {
 				match: match,
 				channelId: channelId,
 				killmail: killmail,
@@ -93,7 +93,7 @@ export async function doDiscordPosts(db) {
 				locale: locale,
 				createdAt: new Date()
 			};
-			await db.matches.insertOne(matchDoc)
+			await db.matches.insertOne(matchDoc);*/
 			break; // break loops, pause for the interval and then start again
 		}
 	} catch (e) {
