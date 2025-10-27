@@ -33,7 +33,7 @@ function needsKillmailFetch(data) {
 }
 
 export async function pollRedisQ(db, REDISQ_URL) {
-	let wait = 500; // RedisQ allows 20 queries / 10 seconds
+	let wait = 15000; // Default to being slow if there is no data
 	try {
 		const controller = new AbortController();
 		const timer = setTimeout(() => controller.abort(), 15000); // 15s timeout
@@ -56,6 +56,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 		}
 
 		if (data && data.package && data.package.killmail) {
+			wait = 500;  // RedisQ allows 20 queries / 10 seconds
 			const killmail = data.package.killmail;
 			const zkb = data.package.zkb;
 
@@ -188,7 +189,6 @@ export async function pollRedisQ(db, REDISQ_URL) {
 		} else {
 			console.error("Error polling RedisQ:", err);
 		}
-		wait = 5000;
 	} finally {
 		if (app_status.exiting) app_status.redisq_polling = false;
 		else setTimeout(pollRedisQ.bind(null, db, REDISQ_URL), wait);
