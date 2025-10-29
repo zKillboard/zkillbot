@@ -124,7 +124,12 @@ async function getKillmailEmbeds(db, config, killmail, zkb, locale) {
 		fb_img = `https://images.evetech.net/corporations//${fb.corporation_id}/logo?size=64`;
 	}
 	if (!fb.character_name) fb.character_name = 'an NPC';
-	const fb_employer = fb.alliance_name ? linkify(fb, config, 'alliance', 'alliance_id', 'alliance_name') : linkify(fb, config, 'corporation', 'corporation_id', 'corporation_name');
+	let fb_employer = fb.alliance_name ? linkify(fb, config, 'alliance', 'alliance_id', 'alliance_name') : linkify(fb, config, 'corporation', 'corporation_id', 'corporation_name');
+	if (fb_employer === '???' && fb.faction_id) {
+		fb_employer = linkify(fb, config, 'faction', 'faction_id', 'faction_name');
+	}
+	
+	
 	const solo = zkb.labels.indexOf('solo') > -1 ? ', solo, ' : '';
 	const attacker_count = killmail.attackers.length - 1;
 	const others = attacker_count > 0 ? ' along with ' + attacker_count + ' other ' + (solo.length > 0 ? 'NPC' : 'pilot') + (attacker_count > 1 ? 's' : '') : '';
@@ -275,7 +280,7 @@ export function applyConfigToEmbed(embed, config = {}) {
 function linkify(object, config, type, idField = 'id', nameField = 'name') {
 	const id = object[idField] || 0;
 	const name = object[nameField] || '???';
-	
+
 	if (id === 0 || (config[`linkify_${type}`] || 'hide') === 'hide') {
 		return name;
 	}
