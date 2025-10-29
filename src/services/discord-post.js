@@ -83,17 +83,6 @@ export async function doDiscordPosts(db) {
 			let cleaned = applyConfigToEmbed(embeds, config);
 			postToDiscord(db, channelId, cleaned, colorCode); // lack of await is on purpose
 
-			/*const matchDoc = {
-				match: match,
-				channelId: channelId,
-				killmail: killmail,
-				zkb: zkb,
-				match_type: matchType,
-				colorCode: colorCode,
-				locale: locale,
-				createdAt: new Date()
-			};
-			await db.matches.insertOne(matchDoc);*/
 			break; // break loops, pause for the interval and then start again
 		}
 	} catch (e) {
@@ -287,7 +276,7 @@ function linkify(object, config, type, idField = 'id', nameField = 'name') {
 	const id = object[idField] || 0;
 	const name = object[nameField] || '???';
 	
-	if ((config[`linkify_${type}`] || 'hide') === 'hide') {
+	if (id === 0 || (config[`linkify_${type}`] || 'hide') === 'hide') {
 		return name;
 	}
 
