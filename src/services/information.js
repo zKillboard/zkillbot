@@ -1,5 +1,6 @@
-import { DAYS_7, HEADERS } from "../util/constants.js";
-import { getJson, unixtime } from "../util/helpers.js";
+import { sleep } from "../util/helpers.js";
+import { HEADERS } from "../util/constants.js";
+import { getJson } from "../util/helpers.js";
 
 import NodeCache from "node-cache";
 const info_cache = new NodeCache({ stdTTL: 900 });
@@ -80,8 +81,15 @@ async function doNamesLookup(ids) {
 			body: JSON.stringify(ids),
 			...HEADERS
 		});
-		return await res.json();
+		if (res.ok) {
+			return await res.json();
+		}
+
+		// we'll let the fall through handle retries
+		throw new Error(`ESI /universe/names returned ${res.status}`);
 	} catch (e) {
+		await sleep(250); // brief pause to avoid hammering
+
 		if (ids.length == 1) {
 			// Problem with this single ID
 			return [{
