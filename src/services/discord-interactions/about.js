@@ -85,7 +85,7 @@ export async function interaction(db, interaction) {
 - labels: ${zkillbot_stats.channel_stats.labelsCount}
 - entityIds: ${zkillbot_stats.channel_stats.entityIdsCount}
 **Posts (last 3 days):** ${zkillbot_stats.post_count_seven_days}
-**Documentation:** <https://zkillboard.com/information/zkillbot/>
+**Documentation:** <https://zkillboard.github.io/zkillbot/>
 Brought to you by [Squizz Caphinator](<https://zkillboard.com/character/1633218082/>)`;
 
 }
