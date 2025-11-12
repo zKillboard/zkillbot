@@ -88,6 +88,11 @@ export async function pollRedisQ(db, REDISQ_URL) {
 					const found = victimEntities.find(e => entityIds.includes(e));
 					if (!found) continue;
 
+					// Check if this channel wants to post losses
+					const channelConfig = await db.channels.findOne({ channelId: match.channelId }) || {};
+					const postLosses = channelConfig.post_losses !== 'hide'; // default to display (true)
+					if (!postLosses) continue; // Skip this loss
+
 					let colorCode = 15548997; // red
 					const channelId = match.channelId;
 					const guildId = match.guildId;
@@ -130,6 +135,11 @@ export async function pollRedisQ(db, REDISQ_URL) {
 					// lets validate that attackerEntities is actually in entityIds (mistrusting mongo $in)
 					const found = attackerEntities.find(e => entityIds.includes(e));
 					if (!found) continue;
+
+					// Check if this channel wants to post kills
+					const channelConfig = await db.channels.findOne({ channelId: match.channelId }) || {};
+					const postKills = channelConfig.post_kills !== 'hide'; // default to display (true)
+					if (!postKills) continue; // Skip this kill
 
 					let colorCode = 5763719; // green
 					const channelId = match.channelId;
