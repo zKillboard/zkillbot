@@ -66,6 +66,8 @@ export async function interaction(db, interaction) {
 				}
 			}
 		]).next();
+		console.log(typeof zkillbot_stats);
+		console.log(channel_stats);
 
 		const post_count_seven_days = await db.sentHistory.countDocuments();
 		zkillbot_stats = {
@@ -86,6 +88,7 @@ export async function interaction(db, interaction) {
 - entityIds: ${zkillbot_stats.channel_stats.entityIdsCount}
 **Posts (last 3 days):** ${zkillbot_stats.post_count_seven_days}
 **Documentation:** <https://zkillboard.github.io/zkillbot/>
-Brought to you by [Squizz Caphinator](<https://zkillboard.com/character/1633218082/>)`;
+Brought to you by [Squizz Caphinator](<https://zkillboard.com/character/1633218082/>), an [Eve Online Partner](<https://www.eveonline.com/partners>)
+Part of [zzSuite](<https://zzeve.com>)`;
 
 }
