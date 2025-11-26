@@ -257,6 +257,7 @@
                     <li class="nav-item"><a class="nav-link" href="#commands">Commands</a></li>
                     <li class="nav-item"><a class="nav-link" href="#channel-config">Configuration</a></li>
                     <li class="nav-item"><a class="nav-link" href="#labels">Labels</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#advanced-filters">Advanced Filters</a></li>
                     <li class="nav-item"><a class="nav-link" href="#support">Support</a></li>
                 </ul>
             </div>
@@ -621,6 +622,135 @@ tz:au, tz:eu, tz:ru, tz:use, tz:usw
             </div>
         </section>
 
+        <!-- Advanced Filters Section -->
+        <section id="advanced-filters" class="mb-5">
+            <h2 class="mb-4">Advanced Filters</h2>
+            <p class="mb-4">zKillBot supports a powerful filter syntax that allows you to create complex subscription rules by combining multiple conditions using logical operators.</p>
+            
+            <div class="row mb-4">
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-code-slash me-2" style="color: #d9534f;"></i>Filter Syntax</h5>
+                            <p class="card-text">Filters use a simple grammar to express conditions:</p>
+                            <ul class="small">
+                                <li><strong>Basic Rule:</strong> <code>key=value</code>, <code>key>value</code>, <code>key&lt;value</code></li>
+                                <li><strong>Operators:</strong> <code>=</code>, <code>!=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>></code>, <code>>=</code></li>
+                                <li><strong>AND Logic:</strong> Use semicolon <code>;</code> to require all conditions</li>
+                                <li><strong>OR Logic:</strong> Use comma <code>,</code> for any condition</li>
+                                <li><strong>Grouping:</strong> Use parentheses <code>()</code> to nest conditions</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+							<h5 class="card-title"><i class="bi bi-code-slash me-2" style="color: #d9534f;"></i>Additional Details</h5>
+							<ul class="small">
+								<li>If a key’s value is an array, all elements of the array are searched.</li>
+								<li>Values are compared as numbers if both sides are numeric, otherwise as strings.</li>
+								<li>Filters automatically traverse nested data structures to find matching values.</li>
+							</ul>
+							<div class="alert alert-info mt-3">
+								<small><i class="bi bi-info-circle me-1"></i>A channel can only have one advanced filter.</small>
+							</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-lightbulb me-2" style="color: #d9534f;"></i>Simple Conditions</h5>
+                            <p class="card-text small mb-3">Basic filter rules with single conditions:</p>
+                            <div class="code-block">
+# ISK value greater than 1 billion<br>
+totalValue>1000000000<br><br>
+
+# Specific ship type ID<br>
+ship_type_id=670<br><br>
+
+# System ID not equal to Jita<br>
+solar_system_id!=30000142
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title"><i class="bi bi-lightbulb me-2" style="color: #d9534f;"></i>Complex Combinations</h5>
+                            <p class="card-text small mb-3">Combine multiple conditions with AND/OR logic:</p>
+                            <div class="code-block">
+# High-value kills in lowsec<br>
+totalValue>5000000000;security&lt;0.5<br><br>
+
+# Frigate OR cruiser kills<br>
+ship_type_id=585,ship_type_id=621<br><br>
+
+# High-value kills OR solo kills<br>
+totalValue>1000000000,solo=true
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">Nested Filter Logic</h5>
+                    <p class="card-text">Parentheses allow you to create sophisticated filters by grouping conditions:</p>
+                    <div class="code-block">
+# (High value OR solo kill) AND in lowsec<br>
+(totalValue>1000000000,solo=true);security&lt;0.5<br><br>
+
+# Capital ship in highsec OR any ship worth over 10b<br>
+(ship_type_id=670;labels=loc:highsec),totalValue>10000000000<br><br>
+
+# Multiple complex conditions<br>
+((totalValue>5000000000;labels=loc:lowsec),(solo=true;ship_type_id=670))
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Available Keys</h5>
+                    <p class="card-text">You can filter on any field in the killmail data structure. Common keys include:</p>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <ul class="small">
+                                <li><code>totalValue</code> - Total ISK value</li>
+                                <li><code>ship_type_id</code> - Ship type ID</li>
+                                <li><code>solar_system_id</code> - System ID</li>
+                                <li><code>character_id</code> - Character ID</li>
+                                <li><code>corporation_id</code> - Corporation ID</li>
+                                <li><code>alliance_id</code> - Alliance ID</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <ul class="small">
+                                <li><code>security</code> - System security status</li>
+                                <li><code>damage_taken</code> - Damage on victim</li>
+                                <li><code>attackers</code> - Number of attackers (array length)</li>
+                                <li><code>points</code> - zKillboard points</li>
+                                <li><code>npc</code> - NPC involved (boolean)</li>
+                                <li><code>solo</code> - Solo kill (boolean)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <small><i class="bi bi-info-circle me-1"></i>The filter system recursively searches the entire killmail data structure, so you can reference any nested field. Refer to the <a href="https://zkillboard.com" target="_blank">zKillboard API</a> for complete killmail data structure.</small>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Upcoming Features Section -->
         <section id="upcoming" class="mb-5">
             <h2 class="mb-4">Upcoming Features</h2>
@@ -628,7 +758,6 @@ tz:au, tz:eu, tz:ru, tz:use, tz:usw
                 <div class="card-body">
                     <ul>
                         <li>LOCALE implementation for language (ISK values already implemented)</li>
-                        <li>Fine-grained filters for precise control over subscriptions. E.g. kills/losses only, or specific ship type of minimal isk value, etc.</li>
                         <li>Subscribe to a system and receive killmails within a chosen jump range or light-year distance</li>
                     </ul>
                 </div>
