@@ -191,9 +191,8 @@ export async function pollRedisQ(db, REDISQ_URL) {
 					try {
 						const filter = parseFilters(match.advanced);
 
-
 						if (matchesFilter(data.package, filter)) {
-							let colorCode = 10197915; // purple
+							let colorCode = 5793266; // purple
 							const channelId = match.channelId;
 							const guildId = match.guildId;
 							discord_posts_queue.push({ db, match, guildId, channelId, killmail, zkb, colorCode, matchType: 'advanced' });

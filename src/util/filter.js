@@ -42,7 +42,13 @@ function findValues(obj, key) {
 		}
 	} else if (obj && typeof obj === "object") {
 		for (const k in obj) {
-			if (k === key) results.push(obj[k]);
+			if (k === key) {
+				if (Array.isArray(obj[k])) {
+					results = results.concat(obj[k]);
+				} else {
+					results.push(obj[k]);
+				}
+			}
 			results = results.concat(findValues(obj[k], key));
 		}
 	}
@@ -79,6 +85,7 @@ function matchesFilter(pkg, filter) {
 
 	const results = rules.map(r => {
 		const values = findValues(pkg, r.key);
+		console.log('Matching values for key', r.key, ':', values);
 		return values.some(v => compare(r.op, v, r.val));
 	});
 
