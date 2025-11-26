@@ -1,5 +1,6 @@
 import { getInformation, getNames } from "../information.js";
 import { log } from "../../util/discord.js";
+import { ADVANCED_PREFIX } from "../../util/constants.js";
 
 export const requiresManageChannelPermission = false;
 export const shouldDefer = true; // Multiple database queries and name resolution
@@ -31,10 +32,13 @@ export async function interaction(db, interaction) {
 		.map(id => `• ${id} — ${names[id] ?? "Unknown"}`)
 		.join("\n");
 	if (doc?.iskValue) {
-		lines += `\nisk: >= ${doc?.iskValue}`;
+		lines += `\nIsk: >= ${doc?.iskValue}`;
 	}
 	if (doc?.labels && doc?.labels?.length > 0) {
-		lines += '\nlabels: ' + doc.labels.join(', ');
+		lines += '\nLabels: ' + doc.labels.join(', ');
+	}
+	if (doc?.advanced) {
+		lines += `\nAdvanced Filter: ` + doc.advanced;
 	}
 
 	// re-add groups to entityIds for display
@@ -49,7 +53,6 @@ export async function interaction(db, interaction) {
 		const name = group?.name || '???';
 		lines += `\n• group:${id} — ${name}`;
 	}
-
 
 	if (lines.length == 0) {
 		return `📋 You have no subscriptions in this channel`;

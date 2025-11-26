@@ -57,6 +57,9 @@ function compare(op, a, b) {
 	if (isNum) {
 		a = Number(a);
 		b = Number(b);
+	} else {
+		a = String(a);
+		b = String(b);
 	}
 	switch (op) {
 		case "=": return a == b;

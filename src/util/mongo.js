@@ -19,6 +19,7 @@ export async function initMongo(MONGO_URI, MONGO_DB) {
 	await sentHistory.createIndex({ createdAt: 1 }, { expireAfterSeconds: DAYS_3 });
 
 	const subsCollection = db.collection("subscriptions");
+	await subsCollection.createIndex({ advanced: 1 });
 	await subsCollection.createIndex({ entityIds: 1 });
 	await subsCollection.createIndex({ iskValue: 1 });
 	await subsCollection.createIndex({ labels: 1 });

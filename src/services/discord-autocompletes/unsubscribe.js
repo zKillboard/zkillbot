@@ -45,6 +45,10 @@ export async function autocomplete(db, interaction) {
 			options.push({ name: `isk:${doc.iskValue}`, value: `isk:${doc.iskValue}` });
 		}
 
+		if (doc?.advanced) {
+			options.push({ name: `advanced:${doc.advanced}`, value: `advanced:${doc.advanced}` });
+		}
+
 		if (value) {
 			await interaction.respond(
 				options.filter(opt => opt.name.toLowerCase().includes(value.toLowerCase())).slice(0, 25)

@@ -1,4 +1,4 @@
-import { ISK_PREFIX, LABEL_PREFIX, LABEL_FILTERS } from "../../util/constants.js";
+import { ISK_PREFIX, LABEL_PREFIX, LABEL_FILTERS, ADVANCED_PREFIX } from "../../util/constants.js";
 import { getFirstString } from "../../util/helpers.js";
 import { getInformation, getNames } from "../information.js";
 import { log } from "../../util/discord.js";
@@ -23,7 +23,7 @@ export async function interaction(db, interaction) {
 	try {
 		const { guildId, channelId } = interaction;
 
-		let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
+		let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id", "advanced"]);
 
 		if (valueRaw.startsWith(ISK_PREFIX)) {
 			const res = await db.subsCollection.updateOne(
@@ -75,6 +75,20 @@ export async function interaction(db, interaction) {
 			}
 		}
 
+		if (valueRaw.startsWith(ADVANCED_PREFIX)) {
+			const res = await db.subsCollection.updateOne(
+				{ guildId, channelId },
+				{ $unset: { advanced: "" } }
+			);
+
+			if (res.modifiedCount > 0) {
+				log(interaction, `/unsubscribe advanced filter`);
+				return `❌ Unsubscribed this channel from the advanced filter`;
+			} else {
+				return `⚠️ No subscription found for the advanced filter`;
+			}
+		}
+
 		const entityId = Number(valueRaw);
 		if (Number.isNaN(entityId)) {
 			return ` ❌ Unable to unsubscribe... **${valueRaw}** is not a number`;
@@ -119,6 +133,7 @@ async function cleanupSubscriptions(db) {
 					{ entityIds: { $exists: false } },
 					{ iskValue: { $exists: false } },
 					{ labels: { $exists: false } },
+					{ advancedFilter: { $exists: false } },
 					{ cleanupAt: { $exists: false } }
 				]
 			},

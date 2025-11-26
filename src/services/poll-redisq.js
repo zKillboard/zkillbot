@@ -2,6 +2,7 @@ import { HEADERS } from "../util/constants.js";
 import { app_status } from "../util/app-status.js";
 import { getShipGroup, getSystemDetails } from "./information.js";
 import { discord_posts_queue } from "./discord-post.js";
+import { matchesFilter, parseFilters } from "../util/filter.js";
 
 async function fetchWithRetry(url, options = {}, maxAttempts = 5) {
 	let attempts = 0;
@@ -178,6 +179,29 @@ export async function pollRedisQ(db, REDISQ_URL) {
 					const channelId = match.channelId;
 					const guildId = match.guildId;
 					discord_posts_queue.push({ db, match, guildId, channelId, killmail, zkb, colorCode, matchType: 'label' });
+				}
+			}
+
+			// Advanced filters
+			{
+				const matchingSubs = await db.subsCollection
+					.find({ advanced: { $exists: true, $ne: "" } })
+					.toArray();
+				for (const match of matchingSubs) {
+					try {
+						const filter = parseFilters(match.advanced);
+
+
+						if (matchesFilter(data.package, filter)) {
+							let colorCode = 10197915; // purple
+							const channelId = match.channelId;
+							const guildId = match.guildId;
+							discord_posts_queue.push({ db, match, guildId, channelId, killmail, zkb, colorCode, matchType: 'advanced' });
+						}
+					}
+					catch (e) {
+						console.error("Error parsing advanced filter:", e);
+					}
 				}
 			}
 

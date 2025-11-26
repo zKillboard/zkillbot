@@ -31,4 +31,4 @@ export const HOURS_24 = 86400; // number of seconds in 1 day
 export const DAYS_3 = HOURS_24 * 3;
 export const DAYS_7 = HOURS_24 * 7;
 export const DAYS_90 = HOURS_24 * 90;
-export const ISK_PREFIX = 'isk:', LABEL_PREFIX = 'label:';
+export const ISK_PREFIX = 'isk:', LABEL_PREFIX = 'label:', ADVANCED_PREFIX = 'advanced:';

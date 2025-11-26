@@ -1,7 +1,8 @@
-import { ISK_PREFIX, LABEL_PREFIX, LABEL_FILTERS } from "../../util/constants.js";
+import { ISK_PREFIX, LABEL_PREFIX, LABEL_FILTERS, ADVANCED_PREFIX } from "../../util/constants.js";
 import { getInformation, getNames } from "../information.js";
 import { getFirstString, unixtime } from "../../util/helpers.js";
 import { log, check } from "../../util/discord.js";
+import { parseFilters } from "../../util/filter.js";
 
 export const requiresManageChannelPermission = true;
 export const shouldDefer = true; // API calls to zkillboard.com and database operations
@@ -83,6 +84,32 @@ export async function interaction(db, interaction) {
 
 		log(interaction, `/subscribe ${name} (group:${entityId})`);
 		return `📡 Subscribed this channel to **${name} (group:${entityId})**`;
+	} else if (valueRaw.startsWith(ADVANCED_PREFIX)) {
+		const filter = valueRaw.slice(ADVANCED_PREFIX.length).trim();
+
+		// Does this channel already have an advanced filter?
+		const row = db.subsCollection.findOne({ guildId, channelId });
+		if (row && row.advanced) {
+			return ` ❌ Unable to subscribe... this channel already has an advanced filter set. Please /unsubscribe advanced first.`;
+		}
+
+		// Ensure filter is good
+		try {
+			parseFilters(filter);
+		} catch (ee) {
+			return ` ❌ Unable to subscribe... advanced filter is invalid: ${ee.message}`;
+		}
+
+		// Filter is valid, save it
+		await db.subsCollection.updateOne(
+			{ guildId, channelId },
+			{ $set: { advanced: filter } },
+			{ upsert: true }
+		);
+
+		log(interaction, `/subscribe advanced filter: ${filter}`);
+		return `📡 Subscribed this channel with advanced filter:\n\`${filter}\``;
+		
 	} else {
 		let entityId = Number(valueRaw);
 		if (Number.isNaN(entityId)) {
