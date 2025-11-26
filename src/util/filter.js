@@ -1,45 +1,129 @@
 'use strict';
 
 const OP_REGEX = /(<=|>=|!=|=|<|>)/;
+const cache = new Map();
 
-// Parse filter string into rules
 function parseFilters(filterStr) {
 	if (!filterStr) return null;
+	if (cache.has(filterStr)) return cache.get(filterStr);
 
-	const hasAnd = filterStr.includes(";");
-	const hasOr = filterStr.includes(",");
-
-	if (hasAnd && hasOr) {
-		throw new Error("Cannot mix ; and , in filter string");
-	}
-
-	const operator = hasAnd ? "AND" : hasOr ? "OR" : "AND";
-	const parts = filterStr.split(hasAnd ? ";" : ",");
-
-
-	const rules = parts.map(p => {
-		const match = p.match(OP_REGEX);
-		if (!match) throw new Error("Invalid filter format, use key<op>value");
-
-		const [key, val] = p.split(match[0]);
-		return {
-			key: key.trim(),
-			op: match[0],
-			val: isNaN(val.trim()) ? val.trim() : Number(val.trim())
-		};
-	});
-
-	return { operator, rules };
+	const parsed = parseExpression(filterStr.trim());
+	cache.set(filterStr, parsed);
+	return parsed;
 }
 
-// Recursive traversal — collects ALL values for a given key, including inside arrays
+//
+// Grammar:
+//   EXPR := TERM ("," TERM)*         OR groups
+//   TERM := FACTOR (";" FACTOR)*     AND groups
+//   FACTOR := RULE | "(" EXPR ")"
+//   RULE := key <op> value
+//
+
+function parseExpression(str) {
+	let i = 0;
+
+	function skipSpace() {
+		while (i < str.length && /\s/.test(str[i])) i++;
+	}
+
+	// Parse a RULE like "size>10"
+	function parseRule() {
+		skipSpace();
+
+		// Find operator FIRST — no more scanning the whole string manually.
+		const opMatch = str.substring(i).match(OP_REGEX);
+		if (!opMatch) throw new Error("Invalid rule: missing operator");
+
+		const op = opMatch[0];
+
+		// index of operator inside the remaining string
+		const opIndex = str.indexOf(op, i);
+
+		if (opIndex === -1) {
+			throw new Error("Unable to locate operator");
+		}
+
+		// Extract key
+		const key = str.substring(i, opIndex).trim();
+
+		// Move cursor past operator
+		i = opIndex + op.length;
+
+		skipSpace();
+
+		// Value ends at next delimiter: ',', ';', ')'
+		let start = i;
+		while (i < str.length && !/[),;]/.test(str[i])) {
+			i++;
+		}
+
+		const rawVal = str.substring(start, i).trim();
+		const val = isNaN(rawVal) ? rawVal : Number(rawVal);
+
+		return { key, op, val };
+	}
+
+
+	// Parse FACTOR: a rule or a parenthesized (EXPR)
+	function parseFactor() {
+		skipSpace();
+		if (str[i] === '(') {
+			i++; // skip '('
+			const sub = parseExpr();
+			skipSpace();
+			if (str[i] !== ')') throw new Error("Missing closing )");
+			i++; // skip ')'
+			return sub;
+		}
+		return parseRule();
+	}
+
+	// Parse TERM separated by ';'  (AND)
+	function parseTerm() {
+		const factors = [parseFactor()];
+		skipSpace();
+		while (str[i] === ';') {
+			i++; // skip ;
+			factors.push(parseFactor());
+			skipSpace();
+		}
+		if (factors.length === 1 && !factors[0].operator) {
+			// single rule or single group
+			return factors[0];
+		}
+		return { operator: "AND", rules: factors };
+	}
+
+	// Parse EXPR separated by ','  (OR)
+	function parseExpr() {
+		const terms = [parseTerm()];
+		skipSpace();
+		while (str[i] === ',') {
+			i++; // skip ,
+			terms.push(parseTerm());
+			skipSpace();
+		}
+		if (terms.length === 1 && !terms[0].operator) {
+			// single group or rule
+			return terms[0];
+		}
+		return { operator: "OR", rules: terms };
+	}
+
+	const out = parseExpr();
+	skipSpace();
+	if (i < str.length) {
+		throw new Error("Unexpected characters at: " + str.substring(i));
+	}
+	return out;
+}
+
+// Recursive traversal — collects ALL values for a given key
 function findValues(obj, key) {
 	let results = [];
-
 	if (Array.isArray(obj)) {
-		for (const el of obj) {
-			results = results.concat(findValues(el, key));
-		}
+		for (const el of obj) results = results.concat(findValues(el, key));
 	} else if (obj && typeof obj === "object") {
 		for (const k in obj) {
 			if (k === key) {
@@ -52,13 +136,10 @@ function findValues(obj, key) {
 			results = results.concat(findValues(obj[k], key));
 		}
 	}
-
 	return results;
 }
 
-// Comparison logic
 function compare(op, a, b) {
-	// auto-cast strings to numbers if both look numeric
 	const isNum = !isNaN(a) && !isNaN(b);
 	if (isNum) {
 		a = Number(a);
@@ -78,18 +159,21 @@ function compare(op, a, b) {
 	}
 }
 
-// Check if a package matches the rules
 function matchesFilter(pkg, filter) {
 	if (!filter) return true;
-	const { operator, rules } = filter;
 
-	const results = rules.map(r => {
-		const values = findValues(pkg, r.key);
-		console.log('Matching values for key', r.key, ':', values);
-		return values.some(v => compare(r.op, v, r.val));
-	});
+	// If nested group
+	if (filter.operator && filter.rules) {
+		if (filter.operator === "AND") {
+			return filter.rules.every(r => matchesFilter(pkg, r));
+		} else {
+			return filter.rules.some(r => matchesFilter(pkg, r));
+		}
+	}
 
-	return operator === "AND" ? results.every(Boolean) : results.some(Boolean);
+	// Primitive rule
+	const values = findValues(pkg, filter.key);
+	return values.some(v => compare(filter.op, v, filter.val));
 }
 
 export {
