@@ -38,7 +38,7 @@ export async function interaction(db, interaction) {
 		lines += '\nLabels: ' + doc.labels.join(', ');
 	}
 	if (doc?.advanced) {
-		lines += `\nAdvanced Filter: ` + doc.advanced;
+		lines += `\nadvanced:${doc.advanced}`;
 	}
 
 	// re-add groups to entityIds for display
