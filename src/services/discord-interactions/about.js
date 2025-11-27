@@ -22,9 +22,11 @@ export async function interaction(db, interaction) {
 					_id: null,
 					channelIds: { $addToSet: "$channelId" },
 					totalDocs: { $sum: 1 },
+
 					iskValueCount: {
 						$sum: { $cond: [{ $ne: [{ $type: "$iskValue" }, "missing"] }, 1, 0] }
 					},
+
 					labelsCount: {
 						$sum: {
 							$cond: [
@@ -34,12 +36,24 @@ export async function interaction(db, interaction) {
 							]
 						}
 					},
+
 					entityIdsCount: {
 						$sum: {
 							$cond: [
 								{ $isArray: "$entityIds" },
 								{ $size: "$entityIds" },
 								{ $cond: [{ $ne: [{ $type: "$entityIds" }, "missing"] }, 1, 0] }
+							]
+						}
+					},
+
+					// 🔥 NEW FIELD: advanced exists?
+					advancedCount: {
+						$sum: {
+							$cond: [
+								{ $ne: [{ $type: "$advanced" }, "missing"] },
+								1,
+								0
 							]
 						}
 					}
@@ -53,19 +67,28 @@ export async function interaction(db, interaction) {
 					iskValueCount: 1,
 					labelsCount: 1,
 					entityIdsCount: 1,
+					advancedCount: 1,
+
 					summary: {
 						totalFieldCount: {
-							$add: ["$iskValueCount", "$labelsCount", "$entityIdsCount"]
+							$add: [
+								"$iskValueCount",
+								"$labelsCount",
+								"$entityIdsCount",
+								"$advancedCount"
+							]
 						},
 						breakdown: {
 							iskValue: "$iskValueCount",
 							labels: "$labelsCount",
-							entityIds: "$entityIdsCount"
+							entityIds: "$entityIdsCount",
+							advanced: "$advancedCount"
 						}
 					}
 				}
 			}
 		]).next();
+
 		console.log(typeof zkillbot_stats);
 		console.log(channel_stats);
 
@@ -86,6 +109,8 @@ export async function interaction(db, interaction) {
 - iskValue: ${zkillbot_stats.channel_stats.iskValueCount}
 - labels: ${zkillbot_stats.channel_stats.labelsCount}
 - entityIds: ${zkillbot_stats.channel_stats.entityIdsCount}
+- advanced: ${zkillbot_stats.channel_stats.advancedCount}
+**Total Subscriptions:** ${zkillbot_stats.channel_stats.totalDocs}
 **Posts (last 3 days):** ${zkillbot_stats.post_count_seven_days}
 **Documentation:** <https://zkillboard.github.io/zkillbot/>
 Brought to you by [Squizz Caphinator](<https://zkillboard.com/character/1633218082/>), an [Eve Online Partner](<https://www.eveonline.com/partners>)
