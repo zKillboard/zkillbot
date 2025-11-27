@@ -7,13 +7,25 @@ import { app_status } from "../util/app-status.js";
 import { client } from "../zkillbot.js";
 
 const post_cache = new NodeCache({ stdTTL: 30 });
+const post_count_check = new NodeCache({ stdTTL: 3600 });
 export const discord_posts_queue = [];
 
 export async function doDiscordPosts(db) {
 	try {
 		while (discord_posts_queue.length > 0) {
 			const { db, match, guildId, channelId, killmail, zkb, colorCode, matchType } = discord_posts_queue.shift();
-			let remove = false;
+
+			let post_count = post_count_check.get(guildId) || -1;
+			if (post_count === -1) {
+				post_count = await db.sentHistory.countDocuments({
+					guildId: guildId
+				});
+				post_count_check.set(guildId, post_count);
+			}
+			if (post_count >= 6000) { 
+				// 6000 posts over 3 days is the limit
+				continue;
+			}
 
 			// ensure we haven't posted this killmail to this channel yet
 			try {
@@ -23,7 +35,7 @@ export async function doDiscordPosts(db) {
 					continue; // already posted recently
 				}
 
-				// check the db in an unobtrusive way
+				// check the database
 				const existing = await db.sentHistory.findOne({ channelId: channelId, killmail_id: killmail.killmail_id });
 				if (existing) {
 					post_cache.set(key, true);
@@ -34,6 +46,7 @@ export async function doDiscordPosts(db) {
 				// if this fails with a duplicate key error, we have already posted it before
 				await db.sentHistory.insertOne(
 					{
+						guildId: guildId,
 						channelId: channelId,
 						killmail_id: killmail.killmail_id,
 						createdAt: new Date()
