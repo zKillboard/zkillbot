@@ -31,7 +31,8 @@ export async function interaction(db, interaction) {
 		}
 	}
 
-	let valueRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]).toLowerCase();
+	let valueRawRaw = getFirstString(interaction, ["query", "filter", "value", "entity_id"]);
+	let valueRaw = valueRawRaw.trim().toLowerCase();
 
 	if (valueRaw.startsWith(ISK_PREFIX)) {
 		const iskValue = Number(valueRaw.substr(ISK_PREFIX.length));
@@ -85,7 +86,7 @@ export async function interaction(db, interaction) {
 		log(interaction, `/subscribe ${name} (group:${entityId})`);
 		return `📡 Subscribed this channel to **${name} (group:${entityId})**`;
 	} else if (valueRaw.startsWith(ADVANCED_PREFIX)) {
-		const filter = valueRaw.slice(ADVANCED_PREFIX.length).trim();
+		const filter = valueRawRaw.slice(ADVANCED_PREFIX.length).trim();
 
 		// Does this channel already have an advanced filter?
 		const row = await db.subsCollection.findOne({ guildId, channelId });
