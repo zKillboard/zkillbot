@@ -33,6 +33,31 @@ function needsKillmailFetch(data) {
 	return data?.package?.zkb?.href && !data.package.killmail;
 }
 
+async function shouldFilterKillOrLoss(db, channelId, matchType, victimEntities = null, attackerEntities = null, entityIds = null) {
+	const channelConfig = await db.channels.findOne({ channelId }) || {};
+	const postKills = channelConfig.post_kills !== 'hide'; // default to display (true)
+	const postLosses = channelConfig.post_losses !== 'hide'; // default to display (true)
+
+	// If matchType is explicitly provided (victim/attacker), check directly
+	if (matchType === 'victim') {
+		return !postLosses; // Filter if losses are hidden
+	}
+	if (matchType === 'attacker') {
+		return !postKills; // Filter if kills are hidden
+	}
+
+	// For ISK/label subscriptions: determine matchType from entity IDs
+	if (entityIds && entityIds.length > 0 && victimEntities && attackerEntities) {
+		const isVictim = victimEntities.some(e => entityIds.includes(e));
+		const isAttacker = attackerEntities.some(e => entityIds.includes(e));
+
+		if (isVictim && !postLosses) return true; // Filter losses
+		if (isAttacker && !postKills) return true; // Filter kills
+	}
+
+	return false; // Don't filter
+}
+
 export async function pollRedisQ(db, REDISQ_URL) {
 	let wait = 15000; // Default to being slow if there is no data
 	try {
@@ -75,7 +100,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			if (shipGroup) {
 				// @ts-ignore
 				victimEntities.push(`group:${shipGroup.id}`);
-			}			
+			}
 
 			// Victims
 			if (victimEntities.length > 0) {
@@ -88,6 +113,8 @@ export async function pollRedisQ(db, REDISQ_URL) {
 					// lets validate that victimEntities is actually in entityIds (mistrusting mongo $in)
 					const found = victimEntities.find(e => entityIds.includes(e));
 					if (!found) continue;
+
+					if (await shouldFilterKillOrLoss(db, match.channelId, 'victim')) continue;
 
 					let colorCode = 15548997; // red
 					const channelId = match.channelId;
@@ -132,6 +159,8 @@ export async function pollRedisQ(db, REDISQ_URL) {
 					const found = attackerEntities.find(e => entityIds.includes(e));
 					if (!found) continue;
 
+					if (await shouldFilterKillOrLoss(db, match.channelId, 'attacker')) continue;
+
 					let colorCode = 5763719; // green
 					const channelId = match.channelId;
 					const guildId = match.guildId;
@@ -154,6 +183,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 					if (zkb.totalValue < match.iskValue) continue;
 
 					// if we got here, we have a match
+					if (await shouldFilterKillOrLoss(db, match.channelId, 'isk', victimEntities, attackerEntities, match.entityIds)) continue;
 
 					let colorCode = 12092939; // gold
 					const channelId = match.channelId;
@@ -174,6 +204,8 @@ export async function pollRedisQ(db, REDISQ_URL) {
 					// lets validate that labels is actually in entityIds (mistrusting mongo $in)
 					const found = labels.find(e => zkb.labels.includes(e));
 					if (!found) continue;
+
+					if (await shouldFilterKillOrLoss(db, match.channelId, 'label', victimEntities, attackerEntities, match.entityIds)) continue;
 
 					let colorCode = 3569059; // dark blue
 					const channelId = match.channelId;

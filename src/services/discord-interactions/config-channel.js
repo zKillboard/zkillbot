@@ -11,6 +11,8 @@ export const requiresManageChannelPermission = true;
 export const shouldDefer = false; // Uses interaction.reply() directly and returns 'IGNORE'
 
 export const configOptions = {
+	post_kills: "Post Kills",
+	post_losses: "Post Losses",
 	header_victim: "Victim in Header",
 	title: 'Title',
 	description: "Full Description",
