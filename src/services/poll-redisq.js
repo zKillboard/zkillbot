@@ -182,6 +182,14 @@ export async function pollRedisQ(db, REDISQ_URL) {
 				}
 			}
 
+			// ensure groups are part of the killmail
+			for (const attacker of data.package.killmail.attackers) {
+				const group = await getShipGroup(db, attacker.ship_type_id);
+				attacker.group_id = group?.id;
+			}
+			const victimGroup = await getShipGroup(db, data.package.killmail.victim.ship_type_id);
+			data.package.killmail.victim.group_id = victimGroup?.id;
+		
 			// Advanced filters
 			{
 				const matchingSubs = await db.subsCollection
