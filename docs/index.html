@@ -650,6 +650,7 @@ tz:au, tz:eu, tz:ru, tz:use, tz:usw
                                 <li><strong>AND Logic:</strong> Use semicolon <code>;</code> to require all conditions</li>
                                 <li><strong>OR Logic:</strong> Use comma <code>,</code> for any condition</li>
                                 <li><strong>Grouping:</strong> Use parentheses <code>()</code> to nest conditions</li>
+                                <li><strong>ElemMatch:</strong> Use square brackets <code>[]</code> to match all conditions within the same array element</li>
                             </ul>
                         </div>
                     </div>
@@ -729,6 +730,29 @@ totalValue>1000000000,solo=true
                 </div>
             </div>
 
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">ElemMatch - Matching Within Same Array Element</h5>
+                    <p class="card-text">Square brackets <code>[]</code> allow you to match multiple conditions that must all be true within the <strong>same</strong> array element. This prevents false matches across different elements.</p>
+                    <div class="code-block">
+# Match if the same attacker has character_id=1234 AND got final blow<br>
+[character_id=1234;final_blow=true]<br><br>
+
+# Match if the same attacker is in group 26 AND got final blow<br>
+[group_id=26;final_blow=true]<br><br>
+
+# High-value kills where character 1234 dealt over 1000 damage<br>
+totalValue>1000000000;[character_id=1234;damage_done>1000]<br><br>
+
+# Complex: Either (character 1234 with final blow) OR high value, AND in lowsec<br>
+([character_id=1234;final_blow=true],totalValue>5000000000);labels=loc:lowsec
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <small><i class="bi bi-info-circle me-1"></i><strong>Why use elemMatch?</strong> Without square brackets, <code>character_id=1234;final_blow=true</code> would match if character 1234 appears anywhere in the attackers list AND anyone got the final blow. With <code>[character_id=1234;final_blow=true]</code>, it only matches if character 1234 is the one who got the final blow.</small>
+                    </div>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-body">
                     <h5 class="card-title">Available Keys</h5>
@@ -748,10 +772,13 @@ totalValue>1000000000,solo=true
                             <ul class="small">
                                 <li><code>security</code> - System security status</li>
                                 <li><code>damage_taken</code> - Damage on victim</li>
-                                <li><code>attackers</code> - Number of attackers (array length)</li>
+                                <li><code>damage_done</code> - Damage dealt by attacker</li>
+                                <li><code>group_id</code> - Ship group ID</li>
+                                <li><code>final_blow</code> - Final blow attacker (boolean)</li>
                                 <li><code>points</code> - zKillboard points</li>
                                 <li><code>npc</code> - NPC involved (boolean)</li>
                                 <li><code>solo</code> - Solo kill (boolean)</li>
+                                <li><code>labels</code> - zKillboard labels</li>
                             </ul>
                         </div>
                     </div>
