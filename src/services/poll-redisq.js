@@ -1,37 +1,9 @@
 import { HEADERS } from "../util/constants.js";
 import { app_status } from "../util/app-status.js";
+import { fetchWithRetry } from "../util/helpers.js";
 import { getShipGroup, getSystemDetails } from "./information.js";
 import { discord_posts_queue } from "./discord-post.js";
 import { matchesFilter, parseFilters } from "../util/filter.js";
-
-async function fetchWithRetry(url, options = {}, maxAttempts = 5) {
-	let attempts = 0;
-	
-	while (attempts < maxAttempts) {
-		try {
-			const response = await fetch(url, options);
-			if (response.ok) {
-				return response;
-			} else {
-				throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-			}
-		} catch (err) {
-			attempts++;
-			if (attempts >= maxAttempts) {
-				console.error(`Failed to fetch after ${maxAttempts} attempts:`, url, err.message);
-				throw err;
-			}
-			// Increasing pause: 500ms, 1s, 2s, 4s for attempts 1-4
-			const pauseMs = 500 * Math.pow(2, attempts - 1);
-			console.warn(`Fetch attempt ${attempts} failed, retrying in ${pauseMs}ms:`, err.message);
-			await new Promise(resolve => setTimeout(resolve, pauseMs));
-		}
-	}
-}
-
-function needsKillmailFetch(data) {
-	return data?.package?.zkb?.href && !data.package.killmail;
-}
 
 export async function pollRedisQ(db, REDISQ_URL) {
 	let wait = 15000; // Default to being slow if there is no data
@@ -46,7 +18,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 		if (text.trim().startsWith('<')) return;
 		const data = JSON.parse(text);
 
-		if (needsKillmailFetch(data)) {
+		if (data?.package?.zkb?.href) {
 			try {
 				const killmailRes = await fetchWithRetry(data.package.zkb.href, HEADERS);
 				data.package.killmail = await killmailRes.json();
