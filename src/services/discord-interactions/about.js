@@ -89,9 +89,6 @@ export async function interaction(db, interaction) {
 			}
 		]).next();
 
-		console.log(typeof zkillbot_stats);
-		console.log(channel_stats);
-
 		const post_count_seven_days = await db.sentHistory.countDocuments();
 		zkillbot_stats = {
 			channel_stats,
