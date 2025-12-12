@@ -49,10 +49,8 @@ export async function getNames(db, entityIds, use_cache = true) {
 		try {
 			// add fetched names into cache
 			for (const e of json) {
-				if (e.category === 'unknown') continue;
-
 				if (use_cache) names_cache.set(e.id, e.name);
-				await db.entities.updateOne({
+				if (e.category !== 'unknown') await db.entities.updateOne({
 					entity_id: e.id
 				}, {
 					$set: {
