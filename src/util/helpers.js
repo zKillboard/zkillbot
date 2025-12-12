@@ -12,7 +12,7 @@ export function sleep(ms) {
 
 export function getIDs(obj) {
 	return Object.entries(obj)
-		.filter(([key]) => key.endsWith('_id'))
+		.filter(([key]) => key.endsWith('_id') && key !== 'group_id')
 		.map(([, value]) => value);
 }
 
