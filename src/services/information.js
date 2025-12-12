@@ -88,7 +88,8 @@ async function doNamesLookup(ids) {
 		// we'll let the fall through handle retries
 		throw new Error(`ESI /universe/names returned ${res.status}`);
 	} catch (e) {
-		await sleep(1000); // brief pause to avoid hammering
+		console.error(ids.length, e.message);
+		await sleep(250); // brief pause to avoid hammering
 
 		if (ids.length == 1) {
 			// Problem with this single ID
