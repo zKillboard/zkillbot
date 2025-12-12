@@ -88,10 +88,11 @@ async function doNamesLookup(ids) {
 		// we'll let the fall through handle retries
 		throw new Error(`ESI /universe/names returned ${res.status}`);
 	} catch (e) {
-		console.error(ids.length, e.message);
+		//console.error(ids.length, e.message);
 		await sleep(250); // brief pause to avoid hammering
 
 		if (ids.length == 1) {
+			console.log(ids[0], 'Single ID retry failed');
 			// Problem with this single ID
 			return [{
 				category: 'unknown',
