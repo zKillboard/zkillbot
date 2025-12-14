@@ -113,7 +113,6 @@ export async function interaction(db, interaction) {
 }
 
 async function cleanupSubscriptions(db) {
-	return; // got a big bug here, will fix later
 	try {
 		// Cleanup any empty label arrays
 		cleanupReport('Empty label check', await db.subsCollection.updateMany({ labels: { $size: 0 } }, { $unset: { labels: "" } }));
@@ -148,6 +147,7 @@ async function cleanupSubscriptions(db) {
 				{ entityIds: { $exists: false } },
 				{ iskValue: { $exists: false } },
 				{ labels: { $exists: false } },
+				{ advancedFilter: { $exists: false } },
 				{ cleanupAt: { $lte: new Date() } }
 			]
 		}));
@@ -158,7 +158,8 @@ async function cleanupSubscriptions(db) {
 				$or: [
 					{ entityIds: { $exists: true } },
 					{ iskValue: { $exists: true } },
-					{ labels: { $exists: true } }
+					{ labels: { $exists: true } },
+					{ advancedFilter: { $exists: true } },
 				],
 				cleanupAt: { $exists: true }
 			},
