@@ -90,9 +90,7 @@ export async function interaction(db, interaction) {
 
 		// Does this channel already have an advanced filter?
 		const row = await db.subsCollection.findOne({ guildId, channelId });
-		if (row && row.advanced) {
-			return ` ❌ Unable to subscribe... this channel already has an advanced filter set. There is a limit of 1 advanced filter per channel. Use \`/list\` to see the current filter(s) or \`/unsubscribe\` first.`;
-		}
+		const oldFilter = row?.advanced || null;
 
 		// Ensure filter is good
 		try {
@@ -109,8 +107,11 @@ export async function interaction(db, interaction) {
 		);
 
 		log(interaction, `/subscribe advanced filter: ${filter}`);
-		return `📡 Subscribed this channel with advanced filter:\n\`${filter}\``;
-		
+		let ret = `📡 Subscribed this channel with advanced filter:\n\`${filter}\``;
+		if (oldFilter) {
+			ret += `\n⚠️ This replaced your old advanced filter:\n\`${oldFilter}\``;
+		}
+		return ret;
 	} else {
 		let entityId = Number(valueRaw);
 		if (Number.isNaN(entityId)) {
