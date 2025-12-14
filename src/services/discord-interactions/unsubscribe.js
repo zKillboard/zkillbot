@@ -113,6 +113,7 @@ export async function interaction(db, interaction) {
 }
 
 async function cleanupSubscriptions(db) {
+	return; // got a big bug here, will fix later
 	try {
 		// Cleanup any empty label arrays
 		cleanupReport('Empty label check', await db.subsCollection.updateMany({ labels: { $size: 0 } }, { $unset: { labels: "" } }));
