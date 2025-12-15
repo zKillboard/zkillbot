@@ -49,7 +49,9 @@ export async function doDiscordPosts(db) {
 						guildId: guildId,
 						channelId: channelId,
 						killmail_id: killmail.killmail_id,
-						createdAt: new Date()
+						createdAt: new Date(),
+						match: match,
+						matchType: matchType
 					}
 				);
 				await db.guilds.updateOne(
