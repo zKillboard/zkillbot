@@ -77,8 +77,8 @@ export async function doDiscordPosts(db) {
 				channel = await client.channels.fetch(channelId);
 			} catch (channelErr) {
 				if ((channelErr.status >= 400 && channelErr.status <= 499) || (channelErr.code == 50001 || channelErr.code == 10003)) {
-					console.log(channelErr);
-					await removeSubscriptions(db, channelId);
+					console.error(channelErr);
+					await removeSubscriptions(db, channelId, channelErr.message);
 				} else {
 					// Something went wrong... keep the error in the logs but don't remove subscriptions just yet
 					console.error(`Failed to send embed to ${channelId}:`, channelErr);
@@ -186,7 +186,7 @@ async function getKillmailEmbeds(db, config, killmail, zkb, locale) {
 
 async function postToDiscord(db, channelId, embed, colorCode) {
 	try {
-		let remove = false;
+		let remove = undefined;
 		try {
 			const channel = await client.channels.fetch(channelId);
 
@@ -206,33 +206,33 @@ async function postToDiscord(db, channelId, embed, colorCode) {
 					});
 					app_status.discord_post_count++;
 				} else {
-					remove = true;
+					remove = 'Missing permissions to send messages or embed links.';
 				}
 			} else {
 				// We shouldn't even be here!
-				remove = true;
+				remove = 'Channel is not text-based.';
 			}
 		} catch (err) {
 			if ((err.status >= 400 && err.status <= 499) || (err.code == 50001 || err.code == 10003)) {
 				console.log(err);
-				remove = true;
+				remove = err.message;
 			} else {
 				// Something went wrong... keep the error in the logs but don't remove subscriptions just yet
 				console.error(`Failed to send embed to ${channelId}:`, err);
 			}
 		}
 		if (remove) {
-			await removeSubscriptions(db, channelId);
+			await removeSubscriptions(db, channelId, remove);
 		}
 	} catch (e) {
 		console.error(e);
 	}
 }
 
-async function removeSubscriptions(db, channelId) {
+async function removeSubscriptions(db, channelId, reason = '') {
 	await db.subsCollection.deleteMany({ channelId: channelId });
 	await db.channels.deleteMany({ channelId: channelId });
-	console.error(`Removing subscriptions for ${channelId}`);
+	console.error(`Removing subscriptions for ${channelId}: ${reason}`);
 }
 
 export function applyConfigToEmbed(embed, config = {}) {
