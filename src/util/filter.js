@@ -83,7 +83,7 @@ function parseExpression(str) {
 			skipSpace();
 			if (str[i] !== ']') throw new Error("Missing closing ]");
 			i++; // skip ']'
-			return { operator: "ELEMMATCH", rules: Array.isArray(sub.rules) ? sub.rules : [sub] };
+			return { operator: "ELEMMATCH", rules: [sub] };
 		}
 		return parseRule();
 	}
@@ -167,6 +167,41 @@ function findArrays(obj) {
 	return results;
 }
 
+// Find all array elements AND top-level entity objects (like victim)
+// This allows elemMatch to work with both attackers (in array) and victim (standalone)
+function findMatchableObjects(obj, path = []) {
+	let results = [];
+	
+	if (Array.isArray(obj)) {
+		// For arrays, add each element as a matchable object
+		for (const el of obj) {
+			if (el && typeof el === "object") {
+				results.push(el);
+			}
+		}
+		// Also recurse into nested structures within array elements
+		for (const el of obj) {
+			results = results.concat(findMatchableObjects(el, path));
+		}
+	} else if (obj && typeof obj === "object") {
+		// For objects, check specific keys that represent entities
+		// In zkillmail structure: victim, attackers elements
+		for (const k in obj) {
+			const val = obj[k];
+			if (val && typeof val === "object") {
+				// If this is a known entity key, add it as matchable
+				if (k === 'victim' || k === 'attacker') {
+					results.push(val);
+				}
+				// Always recurse to find nested arrays and entities
+				results = results.concat(findMatchableObjects(val, [...path, k]));
+			}
+		}
+	}
+	
+	return results;
+}
+
 // Check if a single object matches all rules in a filter
 function matchesObject(obj, rules) {
 	for (const rule of rules) {
@@ -218,13 +253,11 @@ function matchesFilter(pkg, filter) {
 		} else if (filter.operator === "OR") {
 			return filter.rules.some(r => matchesFilter(pkg, r));
 		} else if (filter.operator === "ELEMMATCH") {
-			// Find all arrays in the package and check if any element matches all rules
-			const arrays = findArrays(pkg);
-			for (const arr of arrays) {
-				for (const elem of arr) {
-					if (matchesObject(elem, filter.rules)) {
-						return true;
-					}
+			// Find all matchable objects (array elements + entity objects like victim)
+			const objects = findMatchableObjects(pkg);
+			for (const obj of objects) {
+				if (matchesObject(obj, filter.rules)) {
+					return true;
 				}
 			}
 			return false;
