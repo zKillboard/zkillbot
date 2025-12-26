@@ -41,6 +41,12 @@ async function testKillmail() {
 		console.log(`   System: ${killmail.solar_system_id}`);
 		console.log(`   Attackers: ${killmail.attackers.length}`);
 		
+		// Add is_victim flag (like the bot does)
+		for (const attacker of killmail.attackers) {
+			attacker.is_victim = false;
+		}
+		killmail.victim.is_victim = true;
+		
 		// Fetch zKillboard data for additional info
 		const killmailId = killmailUrl.match(/\/killmails\/(\d+)\//)?.[1];
 		if (killmailId) {
@@ -85,7 +91,7 @@ async function testKillmail() {
 				}
 			}
 		}
-		
+
 		// If we couldn't get zkb data, just test with the killmail
 		console.log('\n⚠️  Could not fetch zKillboard data, testing with killmail only...');
 		const pkg = {
