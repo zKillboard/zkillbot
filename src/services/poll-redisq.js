@@ -166,9 +166,11 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			for (const attacker of data.package.killmail.attackers) {
 				const group = await getShipGroup(db, attacker.ship_type_id);
 				attacker.group_id = group?.id;
+				attacker.is_victim = false;
 			}
 			const victimGroup = await getShipGroup(db, data.package.killmail.victim.ship_type_id);
 			data.package.killmail.victim.group_id = victimGroup?.id;
+			data.package.killmail.victim.is_victim = true;
 		
 			// Advanced filters
 			{
