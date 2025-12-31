@@ -172,6 +172,13 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			data.package.killmail.victim.group_id = victimGroup?.id;
 			data.package.killmail.victim.is_victim = true;
 		
+			const details = await getSystemDetails(db, data.package.killmail.solar_system_id);
+			data.package.killmail.system = details.system;
+			data.package.killmail.constellation_id = details.constellation.constellation_id;
+			data.package.killmail.region_id = details.region.region_id;
+			console.log(data.package.killmail);
+			process.exit();
+		
 			// Advanced filters
 			{
 				const matchingSubs = await db.subsCollection
