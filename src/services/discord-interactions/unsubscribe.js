@@ -113,7 +113,6 @@ export async function interaction(db, interaction) {
 }
 
 async function cleanupSubscriptions(db) {
-	return;
 	try {
 		// Cleanup any empty label arrays
 		cleanupReport('Empty label check', await db.subsCollection.updateMany({ labels: { $size: 0 } }, { $unset: { labels: "" } }));
@@ -134,7 +133,7 @@ async function cleanupSubscriptions(db) {
 					{ entityIds: { $exists: false } },
 					{ iskValue: { $exists: false } },
 					{ labels: { $exists: false } },
-					{ advancedFilter: { $exists: false } },
+					{ advanced: { $exists: false } },
 					{ cleanupAt: { $exists: false } }
 				]
 			},
@@ -143,15 +142,15 @@ async function cleanupSubscriptions(db) {
 
 		// Delete any subscriptions that have been empty for more than 24 hours
 		// and don't have any existing subscriptions
-		cleanupReport('Removing empty subscriptions', await db.subsCollection.deleteMany({
+		/*cleanupReport('Removing empty subscriptions', await db.subsCollection.deleteMany({
 			$and: [
 				{ entityIds: { $exists: false } },
 				{ iskValue: { $exists: false } },
 				{ labels: { $exists: false } },
-				{ advancedFilter: { $exists: false } },
+				{ advanced: { $exists: false } },
 				{ cleanupAt: { $lte: new Date() } }
 			]
-		}));
+		}));*/
 
 		// unset cleanupAt on any non-empty subscriptions
 		await db.subsCollection.updateMany(
@@ -160,7 +159,7 @@ async function cleanupSubscriptions(db) {
 					{ entityIds: { $exists: true } },
 					{ iskValue: { $exists: true } },
 					{ labels: { $exists: true } },
-					{ advancedFilter: { $exists: true } },
+					{ advanced: { $exists: true } },
 				],
 				cleanupAt: { $exists: true }
 			},
