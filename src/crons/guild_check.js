@@ -1,21 +1,24 @@
 import { leaveServer } from "../util/discord.js";
 
+let addGuildsIntervalId = null;
+let cleanupGuildsIntervalId = null;
+
 export async function init(db, client) {
 	//console.log('Guild Check cron enabled');
-	setTimeout(addGuilds.bind(null, db, client), 5555);
-	setTimeout(cleanupGuilds.bind(null, db, client), 6666);
+	addGuildsIntervalId = setTimeout(() => addGuilds(db, client), 5555);
+	cleanupGuildsIntervalId = setTimeout(() => cleanupGuilds(db, client), 6666);
 }
 
 async function addGuilds(db, client) {
 	try {
-		const guildIds = [];
 		client.guilds.cache.forEach(async guild => {
 			await addGuild(db, guild.id);
 		});
 	} catch (err) {
 		console.error(err);
 	} finally {
-		setTimeout(addGuilds.bind(null, db, client), 66666);
+		if (addGuildsIntervalId) clearTimeout(addGuildsIntervalId);
+		addGuildsIntervalId = setTimeout(() => addGuilds(db, client), 66666);
 	}
 }
 
@@ -62,6 +65,7 @@ async function cleanupGuilds(db, client) {
 	} catch (err) {
 		console.error(err);
 	} finally {
-		setTimeout(cleanupGuilds.bind(null, db, client), 66666);
+		if (cleanupGuildsIntervalId) clearTimeout(cleanupGuildsIntervalId);
+		cleanupGuildsIntervalId = setTimeout(() => cleanupGuilds(db, client), 66666);
 	}
 }

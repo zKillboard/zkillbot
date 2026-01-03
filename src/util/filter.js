@@ -1,7 +1,8 @@
 'use strict';
+import NodeCache from "node-cache";
 
 const OP_REGEX = /(<=|>=|!=|=|<|>)/;
-const cache = new Map();
+const cache = new NodeCache({ stdTTL: 300 });
 
 function parseFilters(filterStr) {
 	if (!filterStr) return null;

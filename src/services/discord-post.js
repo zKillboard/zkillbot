@@ -10,6 +10,8 @@ const post_cache = new NodeCache({ stdTTL: 30 });
 const post_count_check = new NodeCache({ stdTTL: 3600 });
 export const discord_posts_queue = [];
 
+let postIntervalId = null;
+
 export async function doDiscordPosts(db) {
 	try {
 		while (discord_posts_queue.length > 0) {
@@ -103,7 +105,8 @@ export async function doDiscordPosts(db) {
 	} catch (e) {
 		console.error(e);
 	} finally {
-		setTimeout(doDiscordPosts.bind(null, db), 100);
+		if (postIntervalId) clearTimeout(postIntervalId);
+		postIntervalId = setTimeout(() => doDiscordPosts(db), 100);
 	}
 }
 

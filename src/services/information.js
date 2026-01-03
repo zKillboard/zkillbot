@@ -3,8 +3,8 @@ import { HEADERS } from "../util/constants.js";
 import { getJson } from "../util/helpers.js";
 
 import NodeCache from "node-cache";
-const info_cache = new NodeCache({ stdTTL: 900 });
-const names_cache = new NodeCache({ stdTTL: 900 });
+const info_cache = new NodeCache({ stdTTL: 300 });
+const names_cache = new NodeCache({ stdTTL: 300 });
 
 const ESI_MAP = {
 	'system': `https://esi.evetech.net/universe/systems/:id`,

@@ -5,14 +5,22 @@ import { getShipGroup, getSystemDetails } from "./information.js";
 import { discord_posts_queue } from "./discord-post.js";
 import { matchesFilter, parseFilters } from "../util/filter.js";
 
+let pollIntervalId = null;
+
 export async function pollRedisQ(db, REDISQ_URL) {
 	let wait = 15000; // Default to being slow if there is no data
+	let timer = null;
 	try {
+		if (discord_posts_queue.length > 1000) {
+			// we'll wait the default timeout
+		}
+
 		const controller = new AbortController();
-		const timer = setTimeout(() => controller.abort(), 15000); // 15s timeout
+		timer = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
 		const res = await fetch(REDISQ_URL, { ...HEADERS, signal: controller.signal });
 		clearTimeout(timer);
+		timer = null;
 
 		const text = await res.text();
 		if (text.trim().startsWith('<')) return;
@@ -209,7 +217,15 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			console.error("Error polling RedisQ:", err);
 		}
 	} finally {
-		if (app_status.exiting) app_status.redisq_polling = false;
-		else setTimeout(pollRedisQ.bind(null, db, REDISQ_URL), wait);
+		if (timer) clearTimeout(timer);
+		if (app_status.exiting) {
+			app_status.redisq_polling = false;
+			if (pollIntervalId) {
+				clearTimeout(pollIntervalId);
+				pollIntervalId = null;
+			}
+		} else {
+			pollIntervalId = setTimeout(() => pollRedisQ(db, REDISQ_URL), wait);
+		}
 	}
 }
