@@ -98,7 +98,9 @@ export async function doDiscordPosts(db) {
 
 			// adjust the embeds to their preference
 			let cleaned = applyConfigToEmbed(embeds, config);
-			postToDiscord(db, channelId, cleaned, colorCode); // lack of await is on purpose
+			postToDiscord(db, channelId, cleaned, colorCode).catch(err => {
+				console.error('postToDiscord error:', err);
+			}); // fire-and-forget with error handling
 
 			break; // break loops, pause for the interval and then start again
 		}

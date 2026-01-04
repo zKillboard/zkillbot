@@ -15,12 +15,13 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			// we'll wait the default timeout
 		}
 
-		const controller = new AbortController();
+		let controller = new AbortController();
 		timer = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
 		const res = await fetch(REDISQ_URL, { ...HEADERS, signal: controller.signal });
 		clearTimeout(timer);
 		timer = null;
+		controller = null; // Release AbortController reference
 
 		const text = await res.text();
 		if (text.trim().startsWith('<')) return;
@@ -217,7 +218,10 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			console.error("Error polling RedisQ:", err);
 		}
 	} finally {
-		if (timer) clearTimeout(timer);
+		if (timer) {
+			clearTimeout(timer);
+			timer = null;
+		}
 		if (app_status.exiting) {
 			app_status.redisq_polling = false;
 			if (pollIntervalId) {
