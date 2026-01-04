@@ -89,10 +89,10 @@ export async function interaction(db, interaction) {
 			}
 		]).next();
 
-		const post_count_seven_days = await db.sentHistory.countDocuments();
+		const post_count_24_hours = await db.sentHistory.countDocuments();
 		zkillbot_stats = {
 			channel_stats,
-			post_count_seven_days
+			post_count_24_hours: post_count_24_hours
 		}
 		stats_cache.set("about_stats", zkillbot_stats);
 	}
@@ -107,7 +107,7 @@ export async function interaction(db, interaction) {
 - labels: ${zkillbot_stats.channel_stats.labelsCount}
 - entityIds: ${zkillbot_stats.channel_stats.entityIdsCount}
 - advanced: ${zkillbot_stats.channel_stats.advancedCount}
-**Posts (last 3 days):** ${zkillbot_stats.post_count_seven_days}
+**Posts (last 24 hours):** ${zkillbot_stats.post_count_24_hours}
 **Documentation:** <https://zkillboard.github.io/zkillbot/>
 Brought to you by [Squizz Caphinator](<https://zkillboard.com/character/1633218082/>), an [Eve Online Partner](<https://www.eveonline.com/partners>)
 Part of [zzSuite](<https://zzeve.com>)`;

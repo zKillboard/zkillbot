@@ -24,8 +24,8 @@ export async function doDiscordPosts(db) {
 				});
 				post_count_check.set(guildId, post_count);
 			}
-			if (post_count >= 6000) { 
-				// 6000 posts over 3 days is the limit
+			if (post_count >= 2000) { 
+				// 2000 posts over 24 hours is the limit
 				continue;
 			}
 
