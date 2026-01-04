@@ -77,7 +77,7 @@ async function doNamesLookup(ids) {
 		const res = await fetch("https://esi.evetech.net/universe/names", {
 			method: "POST",
 			body: JSON.stringify(ids),
-			...HEADERS
+			headers: HEADERS.headers
 		});
 		if (res.ok) {
 			return await res.json();

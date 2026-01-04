@@ -202,7 +202,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 							let colorCode = 5793266; // purple
 							const channelId = match.channelId;
 							const guildId = match.guildId;
-							console.log(`Advanced filter matched for guild ${guildId} channel ${channelId} killmail ${data.package.killmail.killmail_id}: ${match.advanced}`);
+							// console.log(`Advanced filter matched for guild ${guildId} channel ${channelId} killmail ${data.package.killmail.killmail_id}: ${match.advanced}`);
 							discord_posts_queue.push({ db, match, guildId, channelId, killmail, zkb, colorCode, matchType: 'advanced' });
 						}
 					}
