@@ -18,7 +18,10 @@ export async function pollRedisQ(db, REDISQ_URL) {
 		let controller = new AbortController();
 		timer = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-		const res = await fetch(REDISQ_URL, { ...HEADERS, signal: controller.signal });
+		const res = await fetch(REDISQ_URL, {
+			headers: HEADERS.headers,
+			signal: controller.signal
+		});
 		clearTimeout(timer);
 		timer = null;
 		controller = null; // Release AbortController reference
