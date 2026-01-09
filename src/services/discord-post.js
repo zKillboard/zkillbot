@@ -52,7 +52,7 @@ export async function doDiscordPosts(db) {
 						channelId: channelId,
 						killmail_id: killmail.killmail_id,
 						createdAt: new Date(),
-						match: match,
+						// match: match,
 						matchType: matchType
 					}
 				);
