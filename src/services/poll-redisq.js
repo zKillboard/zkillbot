@@ -11,8 +11,9 @@ export async function pollRedisQ(db, REDISQ_URL) {
 	let wait = 15000; // Default to being slow if there is no data
 	let timer = null;
 	try {
-		if (discord_posts_queue.length > 1000) {
+		if (discord_posts_queue.length > 100) {
 			// we'll wait the default timeout
+			return;
 		}
 
 		let controller = new AbortController();
