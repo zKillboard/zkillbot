@@ -77,7 +77,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 						let colorCode = 15548997; // red
 						const channelId = match.channelId;
 						const guildId = match.guildId;
-						discord_posts_queue.push({ db, match, guildId, channelId, killmail, zkb, colorCode, matchType: 'victim' });
+						discord_posts_queue.push({ guildId, channelId, killmail, zkb, colorCode, matchType: 'victim' });
 					}
 				}
 			}
@@ -122,7 +122,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 						let colorCode = 5763719; // green
 						const channelId = match.channelId;
 						const guildId = match.guildId;
-						discord_posts_queue.push({ db, match, guildId, channelId, killmail, zkb, colorCode, matchType: 'attacker' });
+						discord_posts_queue.push({ guildId, channelId, killmail, zkb, colorCode, matchType: 'attacker' });
 					}
 				}
 			}
@@ -147,7 +147,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 						let colorCode = 12092939; // gold
 						const channelId = match.channelId;
 						const guildId = match.guildId;
-						discord_posts_queue.push({ db, match, guildId, channelId, killmail, zkb, colorCode, matchType: 'isk' });
+						discord_posts_queue.push({ guildId, channelId, killmail, zkb, colorCode, matchType: 'isk' });
 					}
 				}
 			}
@@ -169,7 +169,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 						let colorCode = 3569059; // dark blue
 						const channelId = match.channelId;
 						const guildId = match.guildId;
-						discord_posts_queue.push({ db, match, guildId, channelId, killmail, zkb, colorCode, matchType: 'label' });
+						discord_posts_queue.push({ guildId, channelId, killmail, zkb, colorCode, matchType: 'label' });
 					}
 				}
 			}
@@ -203,7 +203,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 							const channelId = match.channelId;
 							const guildId = match.guildId;
 							// console.log(`Advanced filter matched for guild ${guildId} channel ${channelId} killmail ${data.package.killmail.killmail_id}: ${match.advanced}`);
-							discord_posts_queue.push({ db, match, guildId, channelId, killmail, zkb, colorCode, matchType: 'advanced' });
+							discord_posts_queue.push({ guildId, channelId, killmail, zkb, colorCode, matchType: 'advanced' });
 						}
 					}
 					catch (e) {

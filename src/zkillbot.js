@@ -42,7 +42,6 @@ async function init() {
 	try {
 		const rest = new REST({ version: "10" }).setToken(DISCORD_BOT_TOKEN);
 		console.log("🔄 Registering slash commands...");
-		doDiscordPosts(client.db);
 
 		if (process.env.NODE_ENV === "development") {
 			await rest.put(
@@ -93,6 +92,7 @@ async function initCrons(db, client) {
 	for (const file of fs.readdirSync(crons_path).filter(f => f.endsWith(".js"))) {
 		const { init } = await import(`${crons_path}/${file}`);
 		await init(db, client);
+		doDiscordPosts(db);
 	}
 }
 

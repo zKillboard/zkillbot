@@ -15,7 +15,7 @@ let postIntervalId = null;
 export async function doDiscordPosts(db) {
 	try {
 		while (discord_posts_queue.length > 0) {
-			const { db, match, guildId, channelId, killmail, zkb, colorCode, matchType } = discord_posts_queue.shift();
+			const { guildId, channelId, killmail, zkb, colorCode, matchType } = discord_posts_queue.shift();
 
 			let post_count = post_count_check.get(guildId) || -1;
 			if (post_count === -1) {
