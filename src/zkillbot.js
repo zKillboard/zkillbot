@@ -9,6 +9,8 @@ import { sleep } from "./util/helpers.js";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import cron from "node-cron";
+
 // @ts-ignore
 dotenv.config({ quiet: true, path: new URL("../.env", import.meta.url).pathname });
 
@@ -112,4 +114,11 @@ process.on('unhandledRejection', async (reason, promise) => {
 	await sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, `**${ZKILLBOT_VERSION} encountered an unhandled promise rejection and is shutting down.**`);
 	// send sigterm to app for graceful shutdown
 	process.kill(process.pid, 'SIGTERM');
+});
+
+// Schedule a shutdown at 11:01 UTC daily for downtime just to purge GC and reset state
+// A cron will bring us back up at 11:02 UTC
+cron.schedule("1 11 * * *", () => {
+	console.log("11:01 downtime, shutting down");
+	process.kill(process.pid, "SIGTERM");
 });
