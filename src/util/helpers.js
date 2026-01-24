@@ -1,9 +1,17 @@
 import { HEADERS } from "./constants.js";
 import NodeCache from "node-cache";
-const json_cache = new NodeCache({ stdTTL: 30 });
+// MEMORY LEAK FIX: Add maxKeys to prevent unbounded cache growth
+const json_cache = new NodeCache({ stdTTL: 30, maxKeys: 1000 });
 
 export function unixtime() {
 	return Math.floor(Date.now() / 1000);
+}
+
+// MEMORY LEAK FIX: Export cache clear function for memory pressure situations
+export function clearJsonCache() {
+	const keys = json_cache.keys().length;
+	json_cache.flushAll();
+	console.log(`🗑️ Cleared json_cache (${keys} entries)`);
 }
 
 export function sleep(ms) {

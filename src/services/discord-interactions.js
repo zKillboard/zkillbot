@@ -30,6 +30,9 @@ export async function handleInteractions(client) {
 	const autocompletes = await handleImports("./discord-autocompletes");
 	const interactions = await handleImports("./discord-interactions");
 
+	// Remove existing listeners to prevent memory leak on reconnections
+	client.removeAllListeners("interactionCreate");
+
 	// --- interaction handling ---
 	client.on("interactionCreate", async (interaction) => {
 		const db = interaction.client.db;

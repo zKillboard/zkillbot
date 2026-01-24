@@ -2,7 +2,7 @@ import { HEADERS } from "../util/constants.js";
 import { app_status } from "../util/app-status.js";
 import { fetchWithRetry } from "../util/helpers.js";
 import { getShipGroup, getSystemDetails } from "./information.js";
-import { discord_posts_queue } from "./discord-post.js";
+import { discord_posts_queue, addToQueue } from "./discord-post.js";
 import { matchesFilter, parseFilters } from "../util/filter.js";
 
 let pollIntervalId = null;
@@ -78,7 +78,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 						let colorCode = 15548997; // red
 						const channelId = match.channelId;
 						const guildId = match.guildId;
-						discord_posts_queue.push({ guildId, channelId, killmail, zkb, colorCode, matchType: 'victim' });
+					addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'victim' });
 					}
 				}
 			}
@@ -123,7 +123,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 						let colorCode = 5763719; // green
 						const channelId = match.channelId;
 						const guildId = match.guildId;
-						discord_posts_queue.push({ guildId, channelId, killmail, zkb, colorCode, matchType: 'attacker' });
+					addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'attacker' });
 					}
 				}
 			}
@@ -148,7 +148,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 						let colorCode = 12092939; // gold
 						const channelId = match.channelId;
 						const guildId = match.guildId;
-						discord_posts_queue.push({ guildId, channelId, killmail, zkb, colorCode, matchType: 'isk' });
+					addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'isk' });
 					}
 				}
 			}
@@ -170,7 +170,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 						let colorCode = 3569059; // dark blue
 						const channelId = match.channelId;
 						const guildId = match.guildId;
-						discord_posts_queue.push({ guildId, channelId, killmail, zkb, colorCode, matchType: 'label' });
+					addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'label' });
 					}
 				}
 			}
@@ -204,7 +204,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 							const channelId = match.channelId;
 							const guildId = match.guildId;
 							// console.log(`Advanced filter matched for guild ${guildId} channel ${channelId} killmail ${data.package.killmail.killmail_id}: ${match.advanced}`);
-							discord_posts_queue.push({ guildId, channelId, killmail, zkb, colorCode, matchType: 'advanced' });
+						addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'advanced' });
 						}
 					}
 					catch (e) {

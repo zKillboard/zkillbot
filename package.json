@@ -5,6 +5,7 @@
 	"main": "zkillbot.js",
 	"scripts": {
 		"start": "node src/zkillbot.js",
+		"gc": "node -trace-gc src/zkillbot.js",
 		"test": "node tests/filter.test.js"
 	},
 	"keywords": [],

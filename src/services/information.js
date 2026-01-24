@@ -3,8 +3,9 @@ import { HEADERS } from "../util/constants.js";
 import { getJson } from "../util/helpers.js";
 
 import NodeCache from "node-cache";
-const info_cache = new NodeCache({ stdTTL: 300 });
-const names_cache = new NodeCache({ stdTTL: 300 });
+// MEMORY LEAK FIX: Add maxKeys to prevent unbounded cache growth
+const info_cache = new NodeCache({ stdTTL: 300, maxKeys: 5000, checkperiod: 600 });
+const names_cache = new NodeCache({ stdTTL: 300, maxKeys: 10000, checkperiod: 600 });
 
 const ESI_MAP = {
 	'system': `https://esi.evetech.net/universe/systems/:id`,

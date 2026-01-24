@@ -6,9 +6,33 @@ import { getIDs } from "../util/helpers.js";
 import { app_status } from "../util/app-status.js";
 import { client } from "../zkillbot.js";
 
-const post_cache = new NodeCache({ stdTTL: 30 });
-const post_count_check = new NodeCache({ stdTTL: 3600 });
+// MEMORY LEAK FIX: Add maxKeys to prevent unbounded cache growth
+const post_cache = new NodeCache({ stdTTL: 30, maxKeys: 5000, checkperiod: 600 });
+const post_count_check = new NodeCache({ stdTTL: 3600, maxKeys: 2000, checkperiod: 600 });
 export const discord_posts_queue = [];
+const MAX_QUEUE_SIZE = 1000;
+
+// MEMORY LEAK FIX: Circuit breaker for repeatedly failing channels
+const failedChannels = new Map(); // channelId -> { count, lastFail }
+const MAX_CHANNEL_FAILURES = 10;
+
+// MEMORY LEAK FIX: Helper to safely add to queue with size protection
+export function addToQueue(item) {
+	if (discord_posts_queue.length >= MAX_QUEUE_SIZE) {
+		console.warn(`⚠️ Discord queue at capacity (${MAX_QUEUE_SIZE}), dropping oldest item`);
+		discord_posts_queue.shift();
+	}
+	discord_posts_queue.push(item);
+}
+
+// MEMORY LEAK FIX: Export cache clear function for memory pressure situations
+export function clearPostCache() {
+	const postKeys = post_cache.keys().length;
+	const countKeys = post_count_check.keys().length;
+	post_cache.flushAll();
+	post_count_check.flushAll();
+	console.log(`🗑️ Cleared post_cache (${postKeys} entries) and post_count_check (${countKeys} entries)`);
+}
 
 let postIntervalId = null;
 
@@ -190,6 +214,19 @@ async function getKillmailEmbeds(db, config, killmail, zkb, locale) {
 }
 
 async function postToDiscord(db, channelId, embed, colorCode) {
+	// MEMORY LEAK FIX: Circuit breaker - check if this channel has failed too many times
+	const channelFailure = failedChannels.get(channelId);
+	if (channelFailure && channelFailure.count >= MAX_CHANNEL_FAILURES) {
+		// Only retry once per hour after hitting failure threshold
+		const hourAgo = Date.now() - 3600000;
+		if (channelFailure.lastFail > hourAgo) {
+			console.warn(`⚠️ Channel ${channelId} has failed ${channelFailure.count} times, skipping (circuit breaker open)`);
+			return;
+		}
+		// Reset after cooldown period
+		failedChannels.delete(channelId);
+	}
+	
 	try {
 		let remove = undefined;
 		try {
@@ -210,6 +247,8 @@ async function postToDiscord(db, channelId, embed, colorCode) {
 						embeds: [embed]
 					});
 					app_status.discord_post_count++;
+					// Success - clear failure tracking
+					failedChannels.delete(channelId);
 				} else {
 					remove = 'Missing permissions to send messages or embed links.';
 				}
@@ -224,10 +263,21 @@ async function postToDiscord(db, channelId, embed, colorCode) {
 			} else {
 				// Something went wrong... keep the error in the logs but don't remove subscriptions just yet
 				console.error(`Failed to send embed to ${channelId}:`, err);
+				// Track transient failures
+				const failure = failedChannels.get(channelId) || { count: 0, lastFail: 0 };
+				failure.count++;
+				failure.lastFail = Date.now();
+				failedChannels.set(channelId, failure);
+				
+				if (failure.count >= MAX_CHANNEL_FAILURES) {
+					console.error(`⚠️ Channel ${channelId} reached failure threshold, removing subscriptions`);
+					remove = `Too many failures (${failure.count})`;
+				}
 			}
 		}
 		if (remove) {
 			await removeSubscriptions(db, channelId, remove);
+			failedChannels.delete(channelId);
 		}
 	} catch (e) {
 		console.error(e);
