@@ -234,7 +234,7 @@ async function init() {
 			sendWebhook(ZKILLBOT_CHANNEL_WEBHOOK, `*${ZKILLBOT_VERSION} activating - acquiring ~~targets~~ killmails*`);
 
 			// Start memory monitoring
-			startMemoryMonitoring();
+			//startMemoryMonitoring();
 
 			pollRedisQ(client.db, REDISQ_URL);
 			initCrons(client.db, client);
@@ -283,7 +283,7 @@ process.on('unhandledRejection', async (reason, promise) => {
 
 // Schedule a shutdown at 11:01 UTC daily for downtime just to purge GC and reset state
 // A cron will bring us back up at 11:02 UTC
-cron.schedule("1 11 * * *", () => {
+/*cron.schedule("1 11 * * *", () => {
 	console.log("11:01 downtime, shutting down");
 	process.kill(process.pid, "SIGTERM");
-});
+});*/
