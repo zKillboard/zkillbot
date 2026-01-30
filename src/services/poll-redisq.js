@@ -71,7 +71,7 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 		const data = JSON.parse(text);
 
 		if (data) {
-			wait = 50; // Speed up polling when data is present
+			wait = 500; // Speed up polling when data is present
 			const killmail = data.esi;
 			const zkb = data.zkb;
 
