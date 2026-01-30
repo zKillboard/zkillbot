@@ -43,7 +43,10 @@ export async function initMongo(MONGO_URI, MONGO_DB) {
 	const guilds = db.collection("guilds");
 	await guilds.createIndex({ guildId: 1 }, { unique: true });
 
+	const keyvalues = db.collection("keyvalues");
+	await keyvalues.createIndex({ key: 1 }, { unique: true });
+
 	console.log("✅ Connected to MongoDB");
 
-	return { db, channels, entities, sentHistory, subsCollection, information, matches, interactionLogs, guilds };
+	return { db, channels, entities, sentHistory, subsCollection, information, matches, interactionLogs, guilds, keyvalues };
 }

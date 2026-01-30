@@ -7,8 +7,19 @@ import { matchesFilter, parseFilters } from "../util/filter.js";
 
 let pollIntervalId = null;
 
-export async function pollRedisQ(db, REDISQ_URL) {
-	let wait = 15000; // Default to being slow if there is no data
+let errorCount = 0;
+
+export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
+	if (app_status.exiting) {
+		app_status.redisq_polling = false;
+		if (pollIntervalId) {
+			clearTimeout(pollIntervalId);
+			pollIntervalId = null;
+		}
+		return;
+	}
+
+	let wait = 10000; // Default to being slow if there is no data
 	let timer = null;
 	try {
 		if (discord_posts_queue.length > 100) {
@@ -16,10 +27,26 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			return;
 		}
 
+		if (sequence == 0) {
+			const row = await db.keyvalues.findOne({ key: "sequence" });
+			sequence = row?.value || 0;
+
+			if (sequence == 0) {
+				const raw = await fetchWithRetry("https://r2z2.zkillboard.com/ephemeral/sequence.json");
+				const seqData = await raw.json();
+				sequence = seqData.sequence || 0;
+				if (sequence == 0) {
+					console.error("Failed to get initial RedisQ sequence number, defaulting to 0");
+					return;
+				}
+			}
+			console.log(`Starting RedisQ sequence at ${sequence}`);
+		}
+
 		let controller = new AbortController();
 		timer = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
-		const res = await fetch(REDISQ_URL, {
+		const res = await fetch(`https://r2z2.zkillboard.com/ephemeral/${sequence}.json`, {
 			headers: HEADERS.headers,
 			signal: controller.signal
 		});
@@ -27,24 +54,26 @@ export async function pollRedisQ(db, REDISQ_URL) {
 		timer = null;
 		controller = null; // Release AbortController reference
 
+		if (res.status !== 200) {
+			errorCount++;
+			if (errorCount > 50) {
+				console.error("Received 404 errors more than 50 times in a row, resetting sequence to 0");
+				sequence = 0;
+				errorCount = 0;
+				await db.keyvalues.deleteOne({ key: "sequence" });
+			}
+			return;
+		}
+		errorCount = 0;
+
 		const text = await res.text();
 		if (text.trim().startsWith('<')) return;
 		const data = JSON.parse(text);
 
-		if (data?.package?.zkb?.href) {
-			try {
-				const killmailRes = await fetchWithRetry(data.package.zkb.href, HEADERS);
-				data.package.killmail = await killmailRes.json();
-			} catch (err) {
-				console.error(`Skipping killmail due to fetch failure:`, data.package.zkb.href);
-				return;
-			}
-		}
-
-		if (data && data.package && data.package.killmail) {
-			wait = 500;  // RedisQ allows 20 queries / 10 seconds
-			const killmail = data.package.killmail;
-			const zkb = data.package.zkb;
+		if (data) {
+			wait = 50; // Speed up polling when data is present
+			const killmail = data.esi;
+			const zkb = data.zkb;
 
 			// Check attackers and victim
 			const victimEntities = [
@@ -155,7 +184,8 @@ export async function pollRedisQ(db, REDISQ_URL) {
 
 			// Labels
 			{
-				const labels = zkb.labels.filter(Boolean);
+				if (!zkb?.labels?.filter) zkb.labels = [];
+				const labels = zkb.labels?.filter(Boolean);
 				if (labels.length > 0) { // length of 0 shouldn't happen, but just in case
 					const matchingSubs = await db.subsCollection
 						.find({ labels: { $in: labels, $exists: true, $ne: [] } })
@@ -170,25 +200,25 @@ export async function pollRedisQ(db, REDISQ_URL) {
 						let colorCode = 3569059; // dark blue
 						const channelId = match.channelId;
 						const guildId = match.guildId;
-					addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'label' });
+						addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'label' });
 					}
 				}
 			}
 
 			// ensure groups are part of the killmail
-			for (const attacker of data.package.killmail.attackers) {
+			for (const attacker of killmail.attackers) {
 				const group = await getShipGroup(db, attacker.ship_type_id);
 				attacker.group_id = group?.id;
 				attacker.is_victim = false;
 			}
-			const victimGroup = await getShipGroup(db, data.package.killmail.victim.ship_type_id);
-			data.package.killmail.victim.group_id = victimGroup?.id;
-			data.package.killmail.victim.is_victim = true;
+			const victimGroup = await getShipGroup(db, killmail.victim.ship_type_id);
+			killmail.victim.group_id = victimGroup?.id;
+			killmail.victim.is_victim = true;
 		
-			const details = await getSystemDetails(db, data.package.killmail.solar_system_id);
-			data.package.killmail.system = details.system;
-			data.package.killmail.constellation_id = details.constellation.constellation_id;
-			data.package.killmail.region_id = details.region.region_id; 
+			const details = await getSystemDetails(db, killmail.solar_system_id);
+			killmail.system = details.system;
+			killmail.constellation_id = details.constellation.constellation_id;
+			killmail.region_id = details.region.region_id; 
 		
 			// Advanced filters
 			{
@@ -203,8 +233,7 @@ export async function pollRedisQ(db, REDISQ_URL) {
 							let colorCode = 5793266; // purple
 							const channelId = match.channelId;
 							const guildId = match.guildId;
-							// console.log(`Advanced filter matched for guild ${guildId} channel ${channelId} killmail ${data.package.killmail.killmail_id}: ${match.advanced}`);
-						addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'advanced' });
+							addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'advanced' });
 						}
 					}
 					catch (e) {
@@ -214,6 +243,12 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			}
 
 			app_status.redisq_count++;
+			sequence++;
+			await db.keyvalues.updateOne(
+				{ key: "sequence" },
+				{ $set: { value: sequence } },
+				{ upsert: true }
+			);
 		}
 	} catch (err) {
 		if (err.name === "AbortError") {
@@ -226,14 +261,6 @@ export async function pollRedisQ(db, REDISQ_URL) {
 			clearTimeout(timer);
 			timer = null;
 		}
-		if (app_status.exiting) {
-			app_status.redisq_polling = false;
-			if (pollIntervalId) {
-				clearTimeout(pollIntervalId);
-				pollIntervalId = null;
-			}
-		} else {
-			pollIntervalId = setTimeout(() => pollRedisQ(db, REDISQ_URL), wait);
-		}
+		pollIntervalId = setTimeout(() => pollRedisQ(db, REDISQ_URL, sequence), wait);
 	}
 }
