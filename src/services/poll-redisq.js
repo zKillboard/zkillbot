@@ -229,7 +229,8 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 					try {
 						const filter = parseFilters(match.advanced);
 
-						if (matchesFilter(data.package, filter)) {
+						const inspect = { killmail, zkb };
+						if (matchesFilter(inspect, filter)) {
 							let colorCode = 5793266; // purple
 							const channelId = match.channelId;
 							const guildId = match.guildId;
