@@ -70,7 +70,7 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 		if (text.trim().startsWith('<')) return;
 		const data = JSON.parse(text);
 
-		if (data) {
+		if (data?.esi) {
 			wait = 500; // Speed up polling when data is present
 			const killmail = data.esi;
 			const zkb = data.zkb;
@@ -89,7 +89,7 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 			if (shipGroup) {
 				// @ts-ignore
 				victimEntities.push(`group:${shipGroup.id}`);
-			}			
+			}
 
 			// Victims
 			{
@@ -107,7 +107,7 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 						let colorCode = 15548997; // red
 						const channelId = match.channelId;
 						const guildId = match.guildId;
-					addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'victim' });
+						addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'victim' });
 					}
 				}
 			}
@@ -152,7 +152,7 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 						let colorCode = 5763719; // green
 						const channelId = match.channelId;
 						const guildId = match.guildId;
-					addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'attacker' });
+						addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'attacker' });
 					}
 				}
 			}
@@ -177,7 +177,7 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 						let colorCode = 12092939; // gold
 						const channelId = match.channelId;
 						const guildId = match.guildId;
-					addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'isk' });
+						addToQueue({ guildId, channelId, killmail, zkb, colorCode, matchType: 'isk' });
 					}
 				}
 			}
@@ -218,7 +218,7 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 			const details = await getSystemDetails(db, killmail.solar_system_id);
 			killmail.system = details.system;
 			killmail.constellation_id = details.constellation.constellation_id;
-			killmail.region_id = details.region.region_id; 
+			killmail.region_id = details.region.region_id;
 		
 			// Advanced filters
 			{
@@ -244,6 +244,10 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 			}
 
 			app_status.redisq_count++;
+		}
+		
+		if (data.sequence_id) {
+			wait = 50;
 			sequence++;
 			await db.keyvalues.updateOne(
 				{ key: "sequence" },
