@@ -1,7 +1,8 @@
 import { discord_posts_queue } from "../services/discord-post.js";
 import { sleep } from "./helpers.js";
 import { app_status, shareAppStatus } from "./app-status.js";
-import { ZKILLBOT_CHANNEL_WEBHOOK, ZKILLBOT_VERSION } from "../zkillbot.js";
+import { ZKILLBOT_VERSION } from "./constants.js";
+import { ZKILLBOT_CHANNEL_WEBHOOK } from "../zkillbot.js";
 import { sendWebhook } from "./webhook.js";
 
 // listen for both SIGINT and SIGTERM

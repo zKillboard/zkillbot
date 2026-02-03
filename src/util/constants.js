@@ -1,8 +1,14 @@
+import { readFileSync } from 'fs';
+
+const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
+const { name, version } = pkg;
+export const ZKILLBOT_VERSION = `${name} v${version}`;
+
 export const LOCALE = 'en';
 
 export const HEADERS = {
 	headers: {
-		"User-Agent": "zKillBot",
+		"User-Agent": ZKILLBOT_VERSION + ' (Discord:squizzcaphinator squizzc@gmail.com)',
 		"Accept": "application/json"
 	}
 };

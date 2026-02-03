@@ -31,6 +31,15 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 			const row = await db.keyvalues.findOne({ key: "sequence" });
 			sequence = row?.value || 0;
 
+			// Ensure we have a valid starting sequence
+			const testRes = await fetch(`https://r2z2.zkillboard.com/ephemeral/${sequence}.json`, {
+				headers: HEADERS.headers
+			});
+			if (testRes.status === 404 && sequence > 0) {
+				console.log(`Stored RedisQ sequence ${sequence} is invalid, resetting to 0`);
+				sequence = 0;
+			}
+
 			if (sequence == 0) {
 				const raw = await fetchWithRetry("https://r2z2.zkillboard.com/ephemeral/sequence.json");
 				const seqData = await raw.json();

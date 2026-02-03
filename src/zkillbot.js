@@ -6,6 +6,7 @@ import { handleInteractions } from "./services/discord-interactions.js";
 import { doDiscordPosts } from "./services/discord-post.js";
 import { sendWebhook } from "./util/webhook.js";
 import { sleep } from "./util/helpers.js";
+import { ZKILLBOT_VERSION } from "./util/constants.js";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
@@ -20,14 +21,10 @@ import { pollRedisQ } from "./services/poll-redisq.js";
 
 import "./util/shutdown.js";
 
-import { readFileSync } from "fs";
 // @ts-ignore
 import { Db } from "mongodb";
 // @ts-ignore
 import { error } from "console";
-const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
-const { name, version } = pkg;
-export const ZKILLBOT_VERSION = `${name} v${version}`;
 console.log(ZKILLBOT_VERSION);
 
 const { DISCORD_BOT_TOKEN, CLIENT_ID, MONGO_URI, MONGO_DB, REDISQ_URL } = process.env;
