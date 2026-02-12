@@ -6,7 +6,7 @@ Killmails are being posted to the wrong guildId/channelId despite the filter mat
 ## How the System Works
 
 ### Data Flow
-1. **poll-redisq.js** polls for new killmails
+1. **poll-r2.js** polls for new killmails
 2. For each killmail, it queries MongoDB for matching subscriptions
 3. Each subscription document contains: `{ guildId, channelId, entityIds, labels, iskValue, advanced }`
 4. When a match is found, it extracts `channelId` and `guildId` from the matched document
@@ -92,7 +92,7 @@ The `match` object is never mutated after being retrieved from MongoDB:
 
 ### Queue Processing
 ```javascript
-// poll-redisq.js - pushing to queue
+// poll-r2.js - pushing to queue
 const channelId = match.channelId;
 const guildId = match.guildId;
 discord_posts_queue.push({ db, match, guildId, channelId, killmail, zkb, colorCode, matchType });

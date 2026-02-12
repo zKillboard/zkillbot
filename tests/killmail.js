@@ -61,7 +61,6 @@ async function testKillmail() {
 					console.log(`   Points: ${zkb.points}`);
 					console.log(`   Labels: ${zkb.labels?.join(', ') || 'none'}`);
 					
-					// Create package structure similar to RedisQ
 					const pkg = {
 						package: {
 							killmail: killmail,

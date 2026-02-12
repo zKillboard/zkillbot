@@ -18,9 +18,9 @@ async function gracefulShutdown(signal) {
 
 		console.log(`⏹️ Preparing to shut down on ${signal}...`);
 
-		// wait for redisq_polling to finish and queue to drain (with 10s timeout)
+		// wait for r2 polling to finish and queue to drain (with 10s timeout)
 		const shutdownTimeout = Date.now() + 30000;
-		while ((app_status.redisq_polling || discord_posts_queue.length > 0) && Date.now() < shutdownTimeout) {
+		while ((app_status.r2_polling || discord_posts_queue.length > 0) && Date.now() < shutdownTimeout) {
 			await sleep(100);
 		}
 

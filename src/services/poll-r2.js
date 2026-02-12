@@ -9,9 +9,9 @@ let pollIntervalId = null;
 
 let errorCount = 0;
 
-export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
+export async function pollR2(db, sequence = 0) {
 	if (app_status.exiting) {
-		app_status.redisq_polling = false;
+		app_status.r2_polling = false;
 		if (pollIntervalId) {
 			clearTimeout(pollIntervalId);
 			pollIntervalId = null;
@@ -19,11 +19,11 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 		return;
 	}
 
-	let wait = 10000; // Default to being slow if there is no data
+	let wait = 6666; // Default to being slow if there is no data
 	let timer = null;
 	try {
 		if (discord_posts_queue.length > 100) {
-			// we'll wait the default timeout
+			wait = 1111; // If our queue is backed up, slow down polling to give it a chance to catch up
 			return;
 		}
 
@@ -31,13 +31,15 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 			const row = await db.keyvalues.findOne({ key: "sequence" });
 			sequence = row?.value || 0;
 
-			// Ensure we have a valid starting sequence
-			const testRes = await fetch(`https://r2z2.zkillboard.com/ephemeral/${sequence}.json`, {
-				headers: HEADERS.headers
-			});
-			if (testRes.status === 404 && sequence > 0) {
-				console.log(`Stored RedisQ sequence ${sequence} is invalid, resetting to 0`);
-				sequence = 0;
+			if (sequence > 0) {
+				// Ensure we have a valid starting sequence
+				const testRes = await fetch(`https://r2z2.zkillboard.com/ephemeral/${sequence}.json`, {
+					headers: HEADERS.headers
+				});
+				if (testRes.status === 404 && sequence > 0) {
+					console.log(`Stored R2 sequence ${sequence} is invalid, resetting to 0`);
+					sequence = 0;
+				}
 			}
 
 			if (sequence == 0) {
@@ -45,11 +47,11 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 				const seqData = await raw.json();
 				sequence = seqData.sequence || 0;
 				if (sequence == 0) {
-					console.error("Failed to get initial RedisQ sequence number, defaulting to 0");
+					console.error("Failed to get initial R2 sequence number, defaulting to 0");
 					return;
 				}
 			}
-			console.log(`Starting RedisQ sequence at ${sequence}`);
+			console.log(`Starting R2 sequence at ${sequence}`);
 		}
 
 		let controller = new AbortController();
@@ -62,6 +64,7 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 		clearTimeout(timer);
 		timer = null;
 		controller = null; // Release AbortController reference
+		console.log(new Date(), res.status, `https://r2z2.zkillboard.com/ephemeral/${sequence}.json`);
 
 		if (res.status !== 200) {
 			errorCount++;
@@ -252,11 +255,11 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 				}
 			}
 
-			app_status.redisq_count++;
+			app_status.r2_count++;
 		}
 		
 		if (data.sequence_id) {
-			wait = 50;
+			wait = 150;
 			sequence++;
 			await db.keyvalues.updateOne(
 				{ key: "sequence" },
@@ -268,13 +271,13 @@ export async function pollRedisQ(db, REDISQ_URL, sequence = 0) {
 		if (err.name === "AbortError") {
 			console.error("Fetch timed out after 15 seconds");
 		} else {
-			console.error("Error polling RedisQ:", err);
+			console.error("Error polling R2:", err);
 		}
 	} finally {
 		if (timer) {
 			clearTimeout(timer);
 			timer = null;
 		}
-		pollIntervalId = setTimeout(() => pollRedisQ(db, REDISQ_URL, sequence), wait);
+		pollIntervalId = setTimeout(() => pollR2(db, sequence), wait);
 	}
 }

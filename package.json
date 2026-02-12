@@ -11,7 +11,7 @@
 	"keywords": [],
 	"author": "",
 	"license": "Unlicense",
-	"description": "A simple bot that listens to zKillboard's RedisQ for killmails and posts to Discord.",
+	"description": "A simple bot that listens to zKillboard's R2 for killmails and posts to Discord.",
 	"engines": {
 		"node": ">=22"
 	},

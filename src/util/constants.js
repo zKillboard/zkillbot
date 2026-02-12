@@ -2,7 +2,7 @@ import { readFileSync } from 'fs';
 
 const pkg = JSON.parse(readFileSync("./package.json", "utf8"));
 const { name, version } = pkg;
-export const ZKILLBOT_VERSION = `${name} v${version}`;
+export const ZKILLBOT_VERSION = `${name} v${version}` + (process.env.NODE_ENV !== "production" ? " (dev)" : "");
 
 export const LOCALE = 'en';
 

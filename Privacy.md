@@ -56,7 +56,7 @@ If the Bot is removed from a Discord server, all related configuration and histo
 
 zKillBot interacts with:
 - **EVE Online / CCP Games** — to retrieve killmail and entity information.
-- **https://zkillredisq.stream/** - [RedisQ](https://github.com/zKillboard/RedisQ) for polling of killmails that have been retrieved via https://zkillboard.com
+- **https://r2z2.zkillboard.com/sequence/*.json** zkill's R2 for polling of killmails via sequences
 - **Discord** — to send and receive data via the Discord API.
 
 All EVE Online intellectual property, including names, logos, and related materials, are the property of **CCP Games**.  

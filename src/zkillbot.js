@@ -17,7 +17,7 @@ import { writeHeapSnapshot } from "v8";
 // @ts-ignore
 dotenv.config({ quiet: true, path: new URL("../.env", import.meta.url).pathname });
 
-import { pollRedisQ } from "./services/poll-redisq.js";
+import { pollR2 } from "./services/poll-r2.js";
 
 import "./util/shutdown.js";
 
@@ -27,7 +27,7 @@ import { Db } from "mongodb";
 import { error } from "console";
 console.log(ZKILLBOT_VERSION);
 
-const { DISCORD_BOT_TOKEN, CLIENT_ID, MONGO_URI, MONGO_DB, REDISQ_URL } = process.env;
+const { DISCORD_BOT_TOKEN, CLIENT_ID, MONGO_URI, MONGO_DB } = process.env;
 export const { ZKILLBOT_CHANNEL_WEBHOOK } = process.env;
 
 // Memory debugging utilities
@@ -165,7 +165,7 @@ function startMemoryMonitoring() {
 	setTimeout(() => logMemoryUsage(), 5000);
 }
 
-if (!DISCORD_BOT_TOKEN || !CLIENT_ID || !REDISQ_URL || !MONGO_URI || !MONGO_DB) {
+if (!DISCORD_BOT_TOKEN || !CLIENT_ID || !MONGO_URI || !MONGO_DB) {
 	console.error("❌ Missing required env vars");
 	process.exit(1);
 }
@@ -233,7 +233,7 @@ async function init() {
 			// Start memory monitoring
 			//startMemoryMonitoring();
 
-			pollRedisQ(client.db, REDISQ_URL);
+			pollR2(client.db);
 			initCrons(client.db, client);
 		});
 
