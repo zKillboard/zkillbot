@@ -37,12 +37,6 @@
             border-radius: 8px;
             color: #cccccc;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-            border-color: #d9534f;
         }
         .card-text, .card p, .card li {
             color: #cccccc;
@@ -55,13 +49,6 @@
             padding: 12px 24px;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(217, 83, 79, 0.3);
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            background: linear-gradient(135deg, #c9302c, #b92c28);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(217, 83, 79, 0.4);
-            color: #ffffff;
         }
         .btn-outline-light {
             color: #e6edf3;
@@ -69,14 +56,6 @@
             font-weight: 500;
             padding: 10px 20px;
             border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-        .btn-outline-light:hover {
-            background-color: #d9534f;
-            border-color: #d9534f;
-            color: #ffffff;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(217, 83, 79, 0.3);
         }
 
         /* Discord Invite Button Styling */
@@ -88,14 +67,6 @@
             padding: 12px 24px;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(91, 32, 154, 0.3);
-            transition: all 0.3s ease;
-        }
-
-        .btn-discord:hover {
-            background: linear-gradient(135deg, #4a1a85, #5b209a);
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(91, 32, 154, 0.4);
-            color: #ffffff;
         }
         .btn-lg {
             padding: 16px 32px;
@@ -158,17 +129,9 @@
         .feature-card {
             background: #1a1a1a;
             border: 1px solid #333333;
-            transition: all 0.3s ease;
             text-align: center;
             padding: 2rem;
             height: 100%;
-        }
-
-        .feature-card:hover {
-            background: #222222;
-            border: 1px solid #d9534f;
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(217, 83, 79, 0.3);
         }
 
         .step-card {
@@ -178,14 +141,6 @@
             padding: 2rem 1.5rem;
             text-align: center;
             height: 100%;
-            transition: all 0.3s ease;
-        }
-
-        .step-card:hover {
-            background: #222222;
-            border-color: #d9534f;
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(217, 83, 79, 0.2);
         }
 
         .step-number {
@@ -206,14 +161,6 @@
         .card {
             background: #1a1a1a;
             border: 1px solid #333333;
-            transition: all 0.3s ease;
-        }
-
-        .card:hover {
-            background: #222222;
-            border: 1px solid #d9534f;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
         /* Ensure all text is visible */
@@ -228,9 +175,6 @@
         }
         a {
             color: #d9534f;
-        }
-        a:hover {
-            color: #f0ad4e;
         }
         .alert-info {
             background-color: #0d1117;
@@ -598,6 +542,7 @@
                         <li>Each channel can have a different display configuration.</li>
                         <li>Killmails include links back to <a href="https://zkillboard.com/" target="_blank">zKillboard</a> for full details.</li>
                         <li>ISK values are adjusted to your guild's locale setting.</li>
+						<li>Discord imposes a hard limit of 2000 characters per message.  Please keep this in mind when crafting an advanced filter.</li>
                     </ul>
 					<div class="alert alert-info mt-3">
 						<small><i class="bi bi-info-circle me-1"></i>A cap of 6,000 posts per server over a rolling 3-day window is enforced to reduce spam. Posts exceeding this limit are silently discarded.</small>
@@ -845,7 +790,7 @@ totalValue>1000000000;[character_id=1234;damage_done>1000]<br><br>
             <div class="row">
                 <div class="col-md-12">
                     <img src="logo.png" alt="zKillBot" style="height: 40px; opacity: 0.7; margin-bottom: 1rem;">
-                    <p class="mb-2" style="font-size: 1.1rem; font-weight: 500;">&copy; 2025 zKillBot</p>
+                    <p class="mb-2" style="font-size: 1.1rem; font-weight: 500;">&copy; <span id="copyright-year"></span> zKillBot</p>
                     <p class="mb-3" style="color: rgba(255,255,255,0.7);">Built for the EVE Online community by Squizz Caphinator</p>
                     <p class="small mb-0" style="color: rgba(255,255,255,0.5);">
                         EVE Online and all related materials are property of CCP Games. 
@@ -856,5 +801,9 @@ totalValue>1000000000;[character_id=1234;damage_done>1000]<br><br>
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-update copyright year
+        document.getElementById('copyright-year').textContent = new Date().getFullYear();
+    </script>
 </body>
 </html>
