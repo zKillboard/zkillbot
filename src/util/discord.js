@@ -95,7 +95,17 @@ export async function leaveServer(db, client, guildId) {
 
 		return true;
 	} catch (err) {
-		console.error(`leaveServer: Failed to leave guild ${guildId}:`, err.message);
+		const error = /** @type {{ message?: string; code?: number }} */ (err);
+
+		if (error.message?.includes('Unknown Guild') || error.code === 10004) {
+			console.log(`leaveServer: Guild ${guildId} is already gone (Unknown Guild). Cleaning up database records.`);
+			await db.channels.deleteMany({ guildId: guildId });
+			await db.subsCollection.deleteMany({ guildId: guildId });
+			await db.guilds.deleteMany({ guildId: guildId });
+			return true;
+		}
+
+		console.error(`leaveServer: Failed to leave guild ${guildId}:`, error.message ?? err);
 		return false;
 	}
 }
