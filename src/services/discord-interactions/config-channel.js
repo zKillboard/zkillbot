@@ -68,7 +68,7 @@ export async function interaction(db, interaction) {
 		const rows = [];
 
 		for (const [key, label] of slice) {
-			const defaultValue = defaultValues[key] || 'display';
+			// const defaultValue = defaultValues[key] || 'display';
 			addSetting(rows, label, key, config);
 		}
 
@@ -96,7 +96,7 @@ export async function interaction(db, interaction) {
 
 export function addSetting(rows, name, setting, config) {
 	const current = config[setting] || (defaultValues[setting] || 'display');
-	const displayed = current === 'display' ? (defaultValues[setting] == 'hide' ? 'Hidden' : 'Displayed') : 'Hidden';
+	const displayed = current === 'display' ? 'Displayed' : 'Hidden';
 
 	rows.push(new ActionRowBuilder().addComponents(
 		new StringSelectMenuBuilder()
