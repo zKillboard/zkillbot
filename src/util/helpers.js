@@ -49,7 +49,7 @@ export async function getJsonCached(url) {
 	return value;
 }
 
-export async function fetchWithRetry(url, options = {}, maxAttempts = 15) {
+export async function fetchWithRetry(url, options = {}, maxAttempts = 12) {
 	let attempts = 0;
 
 	while (attempts < maxAttempts) {
@@ -68,7 +68,7 @@ export async function fetchWithRetry(url, options = {}, maxAttempts = 15) {
 			}
 			// Increasing pause: 500ms, 1s, 2s, 4s for attempts 1-4
 			const pauseMs = 500 * Math.pow(2, attempts - 1);
-			console.warn(`Fetch attempt ${attempts} failed, retrying in ${pauseMs}ms:`, err.message);
+			console.warn(`${url} Fetch attempt ${attempts} failed, retrying in ${pauseMs}ms:`, err.message);
 			await new Promise(resolve => setTimeout(resolve, pauseMs));
 		}
 	}
