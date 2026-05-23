@@ -1,6 +1,6 @@
 {
 	"name": "zKillBot",
-	"version": "0.2.42",
+	"version": "0.2.43",
 	"type": "module",
 	"main": "zkillbot.js",
 	"scripts": {
