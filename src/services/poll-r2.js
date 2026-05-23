@@ -159,10 +159,12 @@ async function processKillmail(db, killmail, zkb) {
 
 	// Add ship groups
 	for (const attacker of killmail.attackers) {
-		const shipGroup = await getShipGroup(db, attacker.ship_type_id);
-		if (shipGroup) {
-			// @ts-ignore
-			attackerEntities.push(`group:${shipGroup.id}`);
+		if (attacker.ship_type_id) {
+			const shipGroup = await getShipGroup(db, attacker.ship_type_id);
+			if (shipGroup) {
+				// @ts-ignore
+				attackerEntities.push(`group:${shipGroup.id}`);
+			}
 		}
 	}
 
@@ -244,8 +246,10 @@ async function processKillmail(db, killmail, zkb) {
 
 	// ensure groups are part of the killmail
 	for (const attacker of killmail.attackers) {
-		const group = await getShipGroup(db, attacker.ship_type_id);
-		attacker.group_id = group?.id;
+		if (attacker.ship_type_id) {
+			const group = await getShipGroup(db, attacker.ship_type_id);
+			attacker.group_id = group?.id;
+		}
 		attacker.is_victim = false;
 	}
 	const victimGroup = await getShipGroup(db, killmail.victim.ship_type_id);
