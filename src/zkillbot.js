@@ -263,7 +263,7 @@ async function initCrons(db, client) {
 /* Discord is throwing exceptions outside the promise chain, catch them here */
 process.on('uncaughtException', async (err) => {
 	// @ts-ignore
-	if (err.code === 10008 || err.code == 40060) {
+	if (err.code === 10008 || err.code == 40060 || err.code == 10062) {
 		console.warn('⚠️ Ignored uncaught Discord exception:', err.message);
 		return; // Unknown Message, can be ignored
 	}
