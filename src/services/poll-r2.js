@@ -81,7 +81,7 @@ export async function pollR2(db, sequence = 0) {
 					const updatedData = await updatedRes.json();
 					if (updatedData?.esi) {
 						await processKillmail(db, updatedData.esi, updatedData.zkb);
-						console.log(`Successfully refetched and processed updated sequence ${data.sequence_updated}`);
+						// console.log(`Successfully refetched and processed updated sequence ${data.sequence_updated}`);
 					}
 				}
 			} catch (e) {
