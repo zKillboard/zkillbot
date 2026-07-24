@@ -24,6 +24,7 @@ export const configOptions = {
 	system: 'System',
 	constellation: 'Constellation',
 	region: 'Region',
+	wormhole_class: 'Wormhole Class',
 	footer_final_blow: "Final Blow in Footer",
 	timestamp: "Timestamp",
 	linkify_character: "Character Links",

@@ -1,7 +1,7 @@
 import NodeCache from "node-cache";
 import { PermissionFlagsBits } from "discord.js";
 
-import { getNames, fillNames, getSystemDetails } from "./information.js";
+import { getNames, fillNames, getSystemDetails, getWormholeClass } from "./information.js";
 import { getIDs } from "../util/helpers.js";
 import { app_status } from "../util/app-status.js";
 import { client } from "../zkillbot.js";
@@ -186,8 +186,13 @@ async function getKillmailEmbeds(db, config, killmail, zkb, locale) {
 	const fb_ship_link = linkify(fb, config, 'ship', 'ship_type_id', 'ship_type_name');
 	const system_link = linkify(system, config, 'system', 'system_id', 'name');
 	const region_link = linkify(region, config,	 'region', 'region_id', 'name');
+	const wormhole_class = getWormholeClass(region);
+	const wormhole_label = typeof wormhole_class === 'number' ? `C${wormhole_class}` : wormhole_class;
+	const wormhole_tag = wormhole_class ? ` (${wormhole_label})` : '';
+	const show_wormhole_class = wormhole_class && config.wormhole_class !== 'hide';
+	const system_field_value = show_wormhole_class ? `${system.name} (${wormhole_label})` : system.name;
 
-	const description = `**${victim_link}** (_${victim_employer}_) lost their **${victim_ship_link}** in **${system_link}** (_${region_link}_). Final Blow by **${fb_link}** (_${fb_employer}_)${solo} in their **${fb_ship_link}**${others}. Total Value: ${zkb.totalValue.toLocaleString(locale)} ISK`;
+	const description = `**${victim_link}** (_${victim_employer}_) lost their **${victim_ship_link}** in **${system_link}**${wormhole_tag} (_${region_link}_). Final Blow by **${fb_link}** (_${fb_employer}_)${solo} in their **${fb_ship_link}**${others}. Total Value: ${zkb.totalValue.toLocaleString(locale)} ISK`;
 
 	const involved = solo.length > 0 ? 'Solo' : killmail.attackers.length.toLocaleString(locale);
 
@@ -202,9 +207,10 @@ async function getKillmailEmbeds(db, config, killmail, zkb, locale) {
 			{ name: "Involved", value: `${involved}`, inline: true },
 			{ name: "Points", value: `${zkb.points.toLocaleString(locale)}`, inline: true },
 			{ name: "Killmail Value", value: `${zkb.totalValue.toLocaleString(locale)} ISK`, inline: true },
-			{ name: "System", value: system.name, inline: true },
+			{ name: "System", value: system_field_value, inline: true },
 			{ name: "Constellation", value: constellation.name, inline: true },
-			{ name: "Region", value: region.name, inline: true }
+			{ name: "Region", value: region.name, inline: true },
+			...(wormhole_class ? [{ name: "Wormhole Class", value: wormhole_label, inline: true }] : [])
 		],
 		timestamp: new Date(killmail.killmail_time),
 		url: url,
@@ -339,6 +345,7 @@ export function applyConfigToEmbed(embed, config = {}) {
 			if (config.system !== 'display' && name.includes("system")) return false;
 			if (config.constellation !== 'display' && name.includes("constellation")) return false;
 			if (config.region !== 'display' && name.includes("region")) return false;
+			if (config.wormhole_class !== 'display' && name.includes("wormhole class")) return false;
 
 			return true;
 		});

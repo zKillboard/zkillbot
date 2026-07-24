@@ -128,6 +128,19 @@ export async function getSystemDetails(db, solar_system_id) {
 	return { system, constellation, region };
 }
 
+// Wormhole regions are named e.g. "A-R#####".."F-R#####", where the leading
+// letter maps to J-space class 1-6 (A=1 .. F=6), and "H-R#####" is Shattered
+// wormhole space. Other lettered regions (Thera, drifter space, etc.) are
+// intentionally left unclassified.
+/** @type {Record<string, number|string>} */
+const WORMHOLE_REGION_CLASS = { A: 1, B: 2, C: 3, D: 4, E: 5, F: 6, H: 'Shattered' };
+
+export function getWormholeClass(region) {
+	const match = /^([A-Za-z])-R\d+$/.exec(region?.name || '');
+	if (!match) return null;
+	return WORMHOLE_REGION_CLASS[match[1].toUpperCase()] || null;
+}
+
 export async function getShipGroup(db, type_id) {
 	const type = await getInformation(db, 'type', type_id);
 	if (!type) return null;
