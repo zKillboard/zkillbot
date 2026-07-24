@@ -1,7 +1,7 @@
 import { HEADERS } from "../util/constants.js";
 import { app_status } from "../util/app-status.js";
 import { fetchWithRetry } from "../util/helpers.js";
-import { getShipGroup, getSystemDetails } from "./information.js";
+import { getShipGroup, getSystemDetails, getWormholeClass } from "./information.js";
 import { discord_posts_queue, addToQueue } from "./discord-post.js";
 import { matchesFilter, parseFilters } from "../util/filter.js";
 
@@ -260,6 +260,7 @@ async function processKillmail(db, killmail, zkb) {
 	killmail.system = details.system;
 	killmail.constellation_id = details.constellation.constellation_id;
 	killmail.region_id = details.region.region_id;
+	killmail.wormhole_class = getWormholeClass(details.region);
 
 	// Advanced filters
 	{
