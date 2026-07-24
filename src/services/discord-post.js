@@ -189,6 +189,8 @@ async function getKillmailEmbeds(db, config, killmail, zkb, locale) {
 	const wormhole_class = getWormholeClass(region);
 	const wormhole_label = typeof wormhole_class === 'number' ? `C${wormhole_class}` : wormhole_class;
 	const wormhole_tag = wormhole_class ? ` (${wormhole_label})` : '';
+	const show_wormhole_class = wormhole_class && config.wormhole_class !== 'hide';
+	const system_field_value = show_wormhole_class ? `${system.name} (${wormhole_label})` : system.name;
 
 	const description = `**${victim_link}** (_${victim_employer}_) lost their **${victim_ship_link}** in **${system_link}**${wormhole_tag} (_${region_link}_). Final Blow by **${fb_link}** (_${fb_employer}_)${solo} in their **${fb_ship_link}**${others}. Total Value: ${zkb.totalValue.toLocaleString(locale)} ISK`;
 
@@ -205,7 +207,7 @@ async function getKillmailEmbeds(db, config, killmail, zkb, locale) {
 			{ name: "Involved", value: `${involved}`, inline: true },
 			{ name: "Points", value: `${zkb.points.toLocaleString(locale)}`, inline: true },
 			{ name: "Killmail Value", value: `${zkb.totalValue.toLocaleString(locale)} ISK`, inline: true },
-			{ name: "System", value: system.name, inline: true },
+			{ name: "System", value: system_field_value, inline: true },
 			{ name: "Constellation", value: constellation.name, inline: true },
 			{ name: "Region", value: region.name, inline: true },
 			...(wormhole_class ? [{ name: "Wormhole Class", value: wormhole_label, inline: true }] : [])
