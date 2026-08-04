@@ -393,6 +393,15 @@
                 <div class="col-lg-6 mb-4">
                     <div class="card h-100">
                         <div class="card-body">
+                            <h5 class="card-title">/zkillbot copy-config</h5>
+                            <p class="card-text">🔒 Copy the current channel's configuration to one target channel with subscriptions or every channel with subscriptions. <a href="#channel-config">See examples below.</a></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="card h-100">
+                        <div class="card-body">
                             <h5 class="card-title">/zkillbot invite</h5>
                             <p class="card-text">🌐 Returns the bot's <a href="https://discord.com/oauth2/authorize?client_id=1422039566721876069&permissions=2048&integration_type=0&scope=bot+applications.commands"
 								target="_blank" rel="noopener noreferrer">invite link</a>.</p>
@@ -486,6 +495,7 @@
         <section id="channel-config" class="mb-5">
             <h2 class="mb-4">Channel Configuration</h2>
             <p class="mb-4">Use <code>/zkillbot config-channel</code> to customize your killmail notifications. This powerful command allows you to control both what information is displayed and how entities are linked.</p>
+            <p class="mb-4">Use <code>/zkillbot copy-config target:#channel</code> to copy the current channel's configuration to another subscribed channel. Use <code>/zkillbot copy-config all:True</code> to copy it to every subscribed channel you can manage in the server. Manage Channels permission is required in each destination; channels you cannot manage are skipped and reported.</p>
             
             <div class="row">
                 <div class="col-lg-6 mb-4">
