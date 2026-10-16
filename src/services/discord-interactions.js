@@ -2,6 +2,7 @@ import { readdirSync } from "fs";
 import path from "path";
 import { sendWebhook } from "../util/webhook.js";
 import { log, logInteraction } from "../util/discord.js";
+import { splitMessage } from "../util/discord-message.js";
 import { configOptions, addSetting } from "./discord-interactions/config-channel.js";
 
 import {
@@ -150,16 +151,23 @@ export async function handleInteractions(client) {
 				let response = await interactions[sub].interaction(db, interaction);
 				try {
 					if (response !== 'IGNORE') {
+						const chunks = splitMessage(response);
+						let reply;
 						if (shouldDefer) {
-							return interaction.editReply({
-								content: response,
+							reply = await interaction.editReply({
+								content: chunks.shift(),
 							});
 						} else {
-							return interaction.reply({
-								content: response,
+							reply = await interaction.reply({
+								content: chunks.shift(),
 								flags: EPHERMERAL
 							});
 						}
+
+						for (const content of chunks) {
+							await interaction.followUp({ content, flags: EPHERMERAL });
+						}
+						return reply;
 					}
 				} finally {
 					logInteraction(db, interaction, `Running ${sub} command`, interaction.options.data?.options, response); 
